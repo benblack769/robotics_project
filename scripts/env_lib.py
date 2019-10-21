@@ -10,6 +10,7 @@ def to_rgb_int(r,g,b):
 GUARD_PATH_VAL = to_rgb_int(185,122,87)
 BLOCK_VAL = to_rgb_int(0,0,0)
 REWARD_VAL = to_rgb_int(237,28,36)
+BLANK_VAL = to_rgb_int(255,255,255)
 
 class Guard:
     def __init__(self,xstart,ystart):
@@ -171,9 +172,14 @@ class Enviornment:
     def agent_collect_reward(self):
         agent = self.agent
         reward_collected = 0
+        new_reward_l = []
         for x,y in self.reward_coords:
             if self.found_target(agent.x,agent.y,x,y,self.reward_collect_radius):
                 reward_collected += 1
+            else:
+                new_reward_l.append((x,y))
+
+        self.reward_coords = new_reward_l
         self.reward_collected += reward_collected
         return reward_collected
 
@@ -203,16 +209,15 @@ class Enviornment:
 
 
     def get_img(self):
-        fig_save = self.rgb_vals.copy()
+        #fig_save = self.rgb_vals.copy()
+        fig_save = np.where(np.equal(self.rgb_vals,BLOCK_VAL),BLOCK_VAL,BLANK_VAL)
+
+        for rx,ry in self.reward_coords:
+            fig_save[ry,rx] = REWARD_VAL
+
         fig_save[int(self.agent.y),int(self.agent.x)] = to_rgb_int(0,0,255)
+
         for guard in self.guards:
             fig_save[int(guard.y),int(guard.x)] = to_rgb_int(0,255,0)
+
         return fig_save
-        #RGBint = fig_save
-        #Blue = RGBint & 255
-        #Green = (RGBint >> 8) & 255
-        #Red =   (RGBint >> 16) & 255
-        #img_data = np.stack([Red,Green,Blue],axis=2)
-        #img = Image.fromarray(img_data.astype(np.uint8))
-        #img.save(fname)
-        #return img_data

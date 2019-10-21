@@ -17,8 +17,8 @@ class AgentDecisionMaker:
         xweight = random.random()
         yweight = random.random()
 
-        xweight += directed_sqr(self.x - self.prevx)
-        yweight += directed_sqr(self.y - self.prevy)
+        #xweight += directed_sqr(self.x - self.prevx)
+        #yweight += directed_sqr(self.y - self.prevy)
 
         for obj_type,point_offset in pointcloud:
             xoff = point_offset[0] #- self.x
