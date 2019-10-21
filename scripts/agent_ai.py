@@ -14,8 +14,8 @@ class AgentDecisionMaker:
 
     def on_sight(self,pointcloud,coords_seen):
         pointcloud += coords_seen
-        xweight = random.random()
-        yweight = random.random()
+        xweight = random.random()*2-1
+        yweight = random.random()*2-1
 
         #xweight += directed_sqr(self.x - self.prevx)
         #yweight += directed_sqr(self.y - self.prevy)

@@ -35,10 +35,12 @@ class Guard:
     def find_move(self, map):
         best_val = -10e50
         best_move = (0,0)
-        for (x,y) in [(-1,0),(0,-1),(1,0),(0,1)]:
-            x += self.x
-            y += self.y
-            if map[y,x] == GUARD_PATH_VAL:
+        NUM_MOVE_FINDS = 8
+        for angle in range(NUM_MOVE_FINDS):
+            theta = 2*math.pi*angle/NUM_MOVE_FINDS
+            x = math.cos(theta) + self.x
+            y = math.sin(theta) + self.y
+            if map[int(y),int(x)] == GUARD_PATH_VAL:
                 new_val = self.val_to_move(x,y)
                 if best_val < new_val:
                     best_val = new_val
@@ -133,9 +135,11 @@ class Enviornment:
             ty = agent.y+math.sin(radians)*self.agent_linesight
             obj,coord = self.find_first_el_blocked(agent.x,agent.y,tx,ty,NUM_CHECK_ON_RAY)
             #print(obj)
-            ray_results.append((obj,self.agent.recenter_coord(coord)))
+            ray_results.append((obj,(coord)))
 
-        return ray_results
+        ray_results += self.agent_sees_objects()
+        recentered = [(obj,self.agent.recenter_coord(coord)) for obj,coord in ray_results]
+        return recentered
 
     def find_first_el_blocked(self,x1,y1,x2,y2,num_check):
         xinc = (x2-x1)/num_check

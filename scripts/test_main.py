@@ -53,7 +53,7 @@ def main(img_fname):
         shutil.rmtree("img_data")
     os.mkdir("img_data")
 
-    for x in range(1000):
+    for x in range(800):
         for guard in env.guards:
             move = guard.find_move(env.rgb_vals)
             env.update_robot_pos((guard.x,guard.y),move)
