@@ -63,8 +63,8 @@ class Agent:
 
 
 class Enviornment:
-    def __init__(self,env_path):
-         pix = Image.open(env_path)
+    def __init__(self,env_data):
+         pix = Image.open(env_data['img_path'])
          pix_vals = np.array(pix).astype(np.uint32)
          self.rgb_vals = to_rgb_int(pix_vals[:,:,0],pix_vals[:,:,1],pix_vals[:,:,2])
          #self.reward_left = np.where(np.equal(self.rgb_vals,REWARD_VAL),True,False)
@@ -77,13 +77,13 @@ class Enviornment:
                  if self.rgb_vals[y,x] == REWARD_VAL:
                      self.reward_coords.append((x,y))
 
-         self.guard_linesight = 10
-         self.agent_linesight = 15
-         self.reward_collect_radius = 3
-         self.robot_radius = 1.5
+         self.guard_linesight = env_data['guard_linesight']
+         self.agent_linesight = env_data['agent_linesight']
+         self.reward_collect_radius = env_data['reward_collect_radius']
          self.reward_collected = 0
-         self.guards = [Guard(56,118)]
-         self.agent = Agent(40,40)
+         self.guards = [Guard(x,y) for x,y in env_data['guard_locations']]
+         ax,ay = env_data['agent_location']
+         self.agent = Agent(ax,ay)
 
     def update_robot_pos(self,old_pos,new_pos):
         pass

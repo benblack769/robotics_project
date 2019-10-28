@@ -129,8 +129,8 @@ namespace gazebo
       for(int i = 0; i < rayCount; i++){
            // Should check these pointers for NULL
            this->parent_ray_sensor_->LaserShape()->Ray(i)->GetIntersection(dist, entity);
-           //if(dist < 100)
-           //std::cerr << dist << "   " << entity << "\n";
+           if(dist < 100)
+           std::cerr << dist << "   " << entity << "\n";
 
       }
    for (j = 0; j<verticalRangeCount; j++)

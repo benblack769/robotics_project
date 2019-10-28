@@ -1,0 +1,11 @@
+{
+    "img_path":"robot_algo.png",
+    "agent_linesight": 15,
+    "guard_linesight": 10,
+    "reward_collect_radius": 3,
+    "guard_locations": [
+        [56,118]
+    ],
+    "agent_location": [40,40],
+    "number_iterations_eval": 800
+}

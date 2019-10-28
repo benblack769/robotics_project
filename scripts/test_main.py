@@ -8,6 +8,7 @@ import os
 import shutil
 import numpy as np
 import subprocess
+import json
 
 def draw_color(map,coord,color):
     ax,ay = coord
@@ -46,9 +47,9 @@ def draw_image(out_fname,rgb_map,agent_loc,guard_locs):
     big_image.save(out_fname)
 
 
-def main(img_fname):
+def main(json_data):
     agent_decider = AgentDecisionMaker()
-    env = Enviornment(img_fname)
+    env = Enviornment(json_data)
     if os.path.exists("img_data"):
         shutil.rmtree("img_data")
     os.mkdir("img_data")
@@ -87,9 +88,10 @@ def main(img_fname):
     print("total reward: ",env.reward_collected)
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 2, "needs a command line argument defining the input file name"
+    assert len(sys.argv) == 2, "needs a command line argument defining the input json file name"
     fname = sys.argv[1]
+    json_data = json.load(open(fname))
     try:
-        main(fname)
+        main(json_data)
     finally:
         save_video()
