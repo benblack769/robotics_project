@@ -62,8 +62,7 @@ def main(json_data):
             guard.exec_move(move)
         #print("updated")
         ray_results = env.communicate_line_sight(env.agent)
-        coords_seen = env.agent_sees_objects()
-        move_dir = agent_decider.on_sight(ray_results,coords_seen)
+        move_dir = agent_decider.on_sight(ray_results)
         actual_dir = env.exec_agent_move(env.agent,move_dir)
         agent_reward_col = env.agent_collect_reward()
 
