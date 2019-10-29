@@ -25,9 +25,9 @@ class AgentDecisionMaker:
                 xweight -= weight*xoff
                 yweight -= weight*yoff
             if obj_type == "GUARD":
-                xweight -= 10000*weight*xoff
-                yweight -= 10000*weight*yoff
-                print("hithere")
+                xweight -= 1000*weight*xoff
+                yweight -= 1000*weight*yoff
+                #print("hithere")
             if obj_type == "REWARD":
                 xweight += 10*xoff*weight
                 yweight += 10*yoff*weight

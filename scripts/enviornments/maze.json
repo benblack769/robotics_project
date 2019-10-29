@@ -1,0 +1,9 @@
+{
+    "img_path":"enviornments/maze.png",
+    "agent_linesight": 10,
+    "guard_linesight": 5,
+    "reward_collect_radius": 3,
+    "guard_locations": [ ],
+    "agent_location": [199,132],
+    "number_iterations_eval": 5000
+}

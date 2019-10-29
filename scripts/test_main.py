@@ -20,11 +20,12 @@ def draw_color(map,coord,color):
 def save_video():
     ffmpeg_call = [
         "ffmpeg",
-        "-y",
-        "-pattern_type", "glob","-i","img_data/data*.png",
-        "-c:v","libx264",
-        "-r","30",
-        "-pix_fmt","yuv420p",
+        "-y",# overwrite output.mp4 if already there
+        "-hide_banner","-loglevel","error", #don't print out unnecessary stuff
+        "-pattern_type", "glob","-i","img_data/data*.png",# get input from image list
+        "-c:v","libx264",#deine output format
+        "-r","30", #define output sample rate
+        "-pix_fmt","yuv420p",#???
         "output.mp4"
     ]
     subprocess.call(ffmpeg_call)
@@ -78,6 +79,8 @@ def main(json_data):
             img_data = env.get_img()
             draw_image("img_data/data{0:05d}.png".format(x//SAMPLE_RATE),img_data,agent_location,next_guard_l)
 
+        if x % 100 == 0:
+            print("executed {}th iteration".format(x))
         #if x % 10 == 0:
         #    env.save_img("data/data{}.png".format(x))
         if env.check_game_over() == "FOUND_AGENT":

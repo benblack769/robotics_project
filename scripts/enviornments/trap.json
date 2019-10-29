@@ -1,0 +1,12 @@
+{
+    "img_path":"enviornments/trap.png",
+    "agent_linesight": 15,
+    "guard_linesight": 10,
+    "reward_collect_radius": 2,
+    "guard_locations": [
+        [159,94],
+        [159,110]
+    ],
+    "agent_location": [211,103],
+    "number_iterations_eval": 800
+}

@@ -35,7 +35,7 @@ class Guard:
     def find_move(self, map):
         best_val = -10e50
         best_move = (0,0)
-        NUM_MOVE_FINDS = 8
+        NUM_MOVE_FINDS = 19
         for angle in range(NUM_MOVE_FINDS):
             theta = 2*math.pi*angle/NUM_MOVE_FINDS
             x = math.cos(theta) + self.x
@@ -47,7 +47,7 @@ class Guard:
                     best_move = (x,y)
 
         if best_val < -10e49:
-            raise RuntimeError("guard didn't find a  place to move")
+            raise RuntimeError("guard at ({},{}) didn't find a  place to move".format(self.x,self.y))
 
         return best_move
 
@@ -85,16 +85,11 @@ class Enviornment:
          ax,ay = env_data['agent_location']
          self.agent = Agent(ax,ay)
 
-    def update_robot_pos(self,old_pos,new_pos):
-        pass
-        #self.block_vals[self.rob_coords(old_pos)] = False
-        #self.block_vals[self.rob_coords(new_pos)] = True
-
     def rob_coords(self,pos):
-        #angle_range = np.arange(0,2*math.pi,2*math.pi/20,dtype=np.float32)
-        #xoffsets = pos[0] + p.cos(angle_range)*self.robot_radius
-        #yoffsets = pos[1] + p.sin(angle_range)*self.robot_radius
-        return int(pos[1]),int(pos[0])#xoffsets,yoffsets
+        return int(pos[1]),int(pos[0])
+
+    def update_robot_pos(self,pos,move):
+        return
 
     def exec_agent_move(self,agent,dir):
         dir_mag = coord_math.dist(dir[0],dir[1],0,0)
