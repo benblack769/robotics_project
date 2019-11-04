@@ -4,24 +4,13 @@ project(ros_pyenv)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
-find_package(gazebo REQUIRED)
-include_directories(${GAZEBO_INCLUDE_DIRS})
-link_directories(${GAZEBO_LIBRARY_DIRS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
-
-# Build our plugin
-add_library(model_plugin SHARED src/model_plugin.cpp)
-target_link_libraries(model_plugin ${GAZEBO_LIBRARIES} )
-
-add_library(sensor_plugin SHARED src/sensor_plugin.cpp)
-target_link_libraries(sensor_plugin ${GAZEBO_LIBRARIES}  RayPlugin ) #${roscpp_LIBRARIES}  ${PROTOBUF_LIBRARIES} 
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  rosconsole
   std_msgs
   message_generation
 )
@@ -62,6 +51,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
  add_message_files(
   FILES
+  vector3d.msg
+  named_position.msg
   add_nums.msg
   ai_result.msg
   env_position_broadcast.msg
@@ -204,11 +195,11 @@ include_directories(
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
+install(FILES
+ launch/simple_world.launch
 #   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 
 #############
 ## Testing ##
@@ -222,3 +213,17 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+
+find_package(gazebo REQUIRED)
+include_directories(${GAZEBO_INCLUDE_DIRS})
+link_directories(${GAZEBO_LIBRARY_DIRS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
+
+# Build our plugin
+add_library(model_plugin SHARED src/model_plugin.cpp)
+target_link_libraries(model_plugin ${GAZEBO_LIBRARIES} )
+
+add_library(logical_sensor_plugin SHARED src/CustomizedLogicalCamera.cpp)
+target_link_libraries(logical_sensor_plugin ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES} ${rosconsole_LIBRARIES}) #${roscpp_LIBRARIES}  ${PROTOBUF_LIBRARIES}

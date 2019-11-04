@@ -74,6 +74,7 @@ namespace gazebo
 
         this->frame_name_ = "/sensor1";
 
+           this->parent_ray_sensor_->SetActive(true);
   this->newLaserScansConnection =
     this->parent_ray_sensor_->LaserShape()->ConnectNewLaserScans(
       boost::bind(&RobotPlugin::OnNewLaserScans, this));
