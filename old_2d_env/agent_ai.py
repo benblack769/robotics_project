@@ -5,7 +5,7 @@ def directed_sqr(x):
     return x * abs(x)
 
 class AgentDecisionMaker:
-    def __init__(self):
+    def __init__(self,env_data):
         #self.map = dict()
         self.x=0
         self.y=0

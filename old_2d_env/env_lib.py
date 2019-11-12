@@ -124,10 +124,7 @@ class Enviornment:
         NUM_RAYS = self.agent_linesight*8
         NUM_CHECK_ON_RAY = self.agent_linesight*2
         ray_results = []
-        for angle in range(NUM_RAYS):
-            radians = math.pi * 2 * angle / NUM_RAYS
-            tx = agent.x+math.cos(radians)*self.agent_linesight
-            ty = agent.y+math.sin(radians)*self.agent_linesight
+        for tx,ty in coord_math.get_rays(self.agent.pos(),NUM_RAYS,self.agent_linesight):
             obj,coord = self.find_first_el_blocked(agent.x,agent.y,tx,ty,NUM_CHECK_ON_RAY)
             #print(obj)
             ray_results.append((obj,(coord)))

@@ -10,6 +10,13 @@ def sqr(x):
 def dist(x1,y1,x2,y2):
     return math.sqrt(sqr(x1-x2)+sqr(y1-y2))
 
+COORDS_AROUND = ((-1,0),(0,-1),(1,0),(0,1))
+
+def add(p1,p2):
+    ax,ay = p1
+    bx,by = p2
+    return (ax+bx,ay+by)
+
 def raytrace2dgrid(x1,y1,x2,y2):
     cx = int(x1)
     cy = int(y1)
@@ -29,6 +36,17 @@ def raytrace2dgrid(x1,y1,x2,y2):
         coord_list.pop()# remove x2,y2 from list
 
     return coord_list
+
+def get_rays(cen,num_rays,radius):
+    rays = []
+    ax,ay = cen
+    for angle in range(num_rays):
+        radians = math.pi * 2 * angle / num_rays
+        tx = ax + math.cos(radians)*radius
+        ty = ay + math.sin(radians)*radius
+        rays.append((tx,ty))
+
+    return rays
 
 if __name__=="__main__":
     print(raytrace2dgrid(1.5,1,3,-2))

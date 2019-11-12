@@ -1,6 +1,6 @@
 import env_lib
 from env_lib import Enviornment
-from agent_ai import AgentDecisionMaker
+from exploring_agent_ai import AgentDecisionMaker
 import sys
 from PIL import Image,ImageDraw
 import PIL
@@ -49,13 +49,13 @@ def draw_image(out_fname,rgb_map,agent_loc,guard_locs):
 
 
 def main(json_data):
-    agent_decider = AgentDecisionMaker()
+    agent_decider = AgentDecisionMaker(json_data)
     env = Enviornment(json_data)
     if os.path.exists("img_data"):
         shutil.rmtree("img_data")
     os.mkdir("img_data")
 
-    for x in range(800):
+    for x in range(200):
         for guard in env.guards:
             move = guard.find_move(env.rgb_vals)
             env.update_robot_pos((guard.x,guard.y),move)
@@ -78,7 +78,7 @@ def main(json_data):
             img_data = env.get_img()
             draw_image("img_data/data{0:05d}.png".format(x//SAMPLE_RATE),img_data,agent_location,next_guard_l)
 
-        if x % 100 == 0:
+        if x % 10 == 0:
             print("executed {}th iteration".format(x))
         #if x % 10 == 0:
         #    env.save_img("data/data{}.png".format(x))
