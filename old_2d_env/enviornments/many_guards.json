@@ -1,0 +1,14 @@
+{
+    "img_path":"enviornments/many_guards.png",
+    "agent_linesight": 20,
+    "guard_linesight": 15,
+    "reward_collect_radius": 3,
+    "guard_locations": [
+        [141,105],
+        [81,121],
+        [40,57],
+        [181,36]
+    ],
+    "agent_location": [157,144],
+    "number_iterations_eval": 800
+}
