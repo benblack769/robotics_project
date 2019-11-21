@@ -1,3 +1,4 @@
 {
-    "svg_fname": "many_guards.svg"
+    "svg_fname": "many_guards.svg",
+    "adjacency_list": "many_guards.graph.json"
 }
