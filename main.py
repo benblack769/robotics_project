@@ -3,6 +3,9 @@ import pygame
 import argparse
 import json
 import time
+import os
+import shutil
+import subprocess
 from visibility import LibVisibility
 from parse_svg import SimpleSVGParser
 import coord_math
@@ -61,12 +64,32 @@ def find_path_points(visibilty_info, start, goals):
         resulting_path += new_path
     return resulting_path
 
+def save_video():
+    ffmpeg_call = [
+        "ffmpeg",
+        "-y",# overwrite output.mp4 if already there
+        "-hide_banner","-loglevel","error", #don't print out unnecessary stuff
+        "-pattern_type", "glob","-i","img_data/data*.png",# get input from image list
+        "-c:v","libx264",#deine output format
+        "-r","30", #define output sample rate
+        "-pix_fmt","yuv420p",#???
+        "output.mp4"
+    ]
+    subprocess.call(ffmpeg_call)
+
+
 
 
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
+    parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
     args = parser.parse_args()
+
+    if os.path.exists("img_data"):
+        shutil.rmtree("img_data/")
+    if args.produce_video:
+        os.makedirs("img_data/",exist_ok=True)
 
     env_values = json.load(open(args.json_fname))
 
@@ -90,6 +113,7 @@ def main():
 
     running = True
     count = 1
+    frame_count = 0
     while running:
         # Did the user click the window close button?
         for event in pygame.event.get():
@@ -122,9 +146,14 @@ def main():
 
         # Flip the display
         pygame.display.flip()
-        #pygame.image.save(screen, "screenshot.jpeg")
+        #SAMPLE_RATE = 5
+        if args.produce_video:
+            pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count))
+        frame_count += 1
 
 
+    if args.produce_video:
+        save_video()
     # Done! Time to quit.
     pygame.quit()
 
