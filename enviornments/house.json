@@ -1,4 +1,4 @@
 {
-    "svg_fname": "house.svg",
+    "map_fname": "house.svg.json",
     "adjacency_list": "house.graph.json"
 }

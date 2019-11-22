@@ -1,10 +1,7 @@
-from svg.path import parse_path
 import argparse
 import json
-import time
 from visibility import LibVisibility
-from parse_svg import SimpleSVGParser
-import gzip
+from struct import Struct
 
 def discritize(width,height,space):
     points = []
@@ -40,8 +37,7 @@ def main():
 
     SPACE = 5
 
-    map_parser = SimpleSVGParser()
-    map_parser.feed(open("enviornments/"+env_values['svg_fname']).read())
+    map_parser = Struct(**json.load(open("enviornments/"+env_values['map_fname'])))
     print(map_parser.blocker_polygons)
     discritized_space_points = discritize(map_parser.width,map_parser.height,SPACE)
 

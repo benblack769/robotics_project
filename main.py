@@ -1,4 +1,3 @@
-from svg.path import parse_path
 from html.parser import HTMLParser
 import pygame
 import argparse
@@ -8,6 +7,7 @@ from visibility import LibVisibility
 from parse_svg import SimpleSVGParser
 import coord_math
 from static_pathing import dikstras
+from struct import Struct
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -53,6 +53,12 @@ def find_path_points(visibilty_info, start, goals):
     start_idx = coord_math.closest(plist,start)
     goals_idxs = [coord_math.closest(plist,g) for g in goals]
     resulting_path = dikstras(start_idx,counts,adj_list,goals_idxs)
+    while resulting_path[-1] in goals_idxs:
+        goals_idxs.remove(resulting_path[-1])
+        new_path  = dikstras(resulting_path[-1],counts,adj_list,goals_idxs)
+        if new_path is None:
+            break
+        resulting_path += new_path
     return resulting_path
 
 
@@ -66,8 +72,8 @@ def main():
 
     visibilty_info = json.load(open("enviornments/"+env_values['adjacency_list']))
 
-    map_parser = SimpleSVGParser()
-    map_parser.feed(open("enviornments/"+env_values['svg_fname']).read())
+    map_parser = Struct(**json.load(open("enviornments/"+env_values['map_fname'])))
+
     print(map_parser.blocker_polygons)
 
     #adj_list = json.load(open(env_values.adjacency_list))
