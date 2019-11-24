@@ -6,8 +6,8 @@ import time
 import os
 import shutil
 import subprocess
-from visibility import LibVisibility
-from parse_svg import SimpleSVGParser
+#from visibility import LibVisibility
+#from parse_svg import SimpleSVGParser
 import coord_math
 from static_pathing import dikstras
 from struct import Struct
@@ -103,7 +103,7 @@ def main():
     #discritized_space_points = discritize(map_parser.width,map_parser.height,5)
 
 
-    libvis = LibVisibility(map_parser.blocker_polygons,map_parser.width,map_parser.height)
+    #libvis = LibVisibility(map_parser.blocker_polygons,map_parser.width,map_parser.height)
     #print(discritized_space_points)
     #vis_counts = libvis.get_point_visibility_counts(discritized_space_points)
 
@@ -126,7 +126,7 @@ def main():
         renderPolys(screen,map_parser.blocker_polygons)
         # Draw a solid blue circle in the center
         count += 1
-        poly = libvis.get_visibilily_polygon((count, count))
+        #poly = libvis.get_visibilily_polygon((count, count))
         #print(poly)
         time.sleep(0.01)
         counts = visibilty_info['counts']
@@ -136,7 +136,7 @@ def main():
             pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/avg_value))
         pygame.draw.circle(screen, (0, 0, 255), (count, count), 5)
         renderRewards(screen,map_parser.reward_points)
-        renderSight(screen,map_parser,poly)
+        #renderSight(screen,map_parser,poly)
 
         path_targets = find_path_points(visibilty_info,(count,count),map_parser.reward_points)
         print(path_targets)
