@@ -10,7 +10,8 @@ import subprocess
 #from parse_svg import SimpleSVGParser
 import coord_math
 from static_pathing import dikstras
-from struct import Struct
+from struct_ import Struct
+from gtsp import GTSP,get_path
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -49,19 +50,22 @@ def discritize(width,height,space):
             points.append((x,y))
     return points
 
-def find_path_points(visibilty_info, start, goals):
+def find_path_points(visibilty_info, gtsp,start, goals):
     plist = visibilty_info["points"]
     adj_list = visibilty_info["adj_list"]
     counts = visibilty_info["counts"]
     start_idx = coord_math.closest(plist,start)
     goals_idxs = [coord_math.closest(plist,g) for g in goals]
-    resulting_path = dikstras(start_idx,counts,adj_list,goals_idxs)
-    while resulting_path[-1] in goals_idxs:
-        goals_idxs.remove(resulting_path[-1])
-        new_path  = dikstras(resulting_path[-1],counts,adj_list,goals_idxs)
-        if new_path is None:
-            break
+    ordering = get_path(gtsp,adj_list,counts,start_idx,goals_idxs,500000)
+    old_goal = start_idx
+    resulting_path = []
+    print(ordering)
+    for new_goal_idx in ordering:
+        new_goal = goals_idxs[new_goal_idx]
+        new_path = dikstras(old_goal,counts,adj_list,[new_goal])
         resulting_path += new_path
+        old_goal = new_goal
+    print(resulting_path)
     return resulting_path
 
 def save_video():
@@ -85,6 +89,7 @@ def main():
     parser.add_argument('json_fname', type=str, help='enviornment json file')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
     args = parser.parse_args()
+    gtsp = GTSP()
 
     if os.path.exists("img_data"):
         shutil.rmtree("img_data/")
@@ -138,8 +143,7 @@ def main():
         renderRewards(screen,map_parser.reward_points)
         #renderSight(screen,map_parser,poly)
 
-        path_targets = find_path_points(visibilty_info,(count,count),map_parser.reward_points)
-        print(path_targets)
+        path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_parser.reward_points)
         renderPath(screen,visibilty_info,path_targets)
 
         #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
