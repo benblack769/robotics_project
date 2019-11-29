@@ -66,8 +66,11 @@ def get_path(gtsp,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
     dist_mat = get_dist_mat(adj_graph,weights,all_reward_idxs)
     reduced = dist_mat#reduce_distance_matrix(dist_mat,reamapped)
     rew_adds = [len(all_reward_idxs)+i for i in range(len(reward_idxs))]
-    reduced_offset = padback_dist_mat(reduced,len(rew_adds),max_reward_benefit)
-    gtsp_sets = [[0]]+[[1+i,1+i+len(reward_idxs)] for i in range(len(reward_idxs))]
+    reduced_offset = padback_dist_mat(reduced,len(rew_adds)+1,max_reward_benefit)
+    LAST_EL = 1+len(reward_idxs)*2
+    reduced_offset[0,LAST_EL] = reduced_offset[LAST_EL,0] = max_reward_benefit/4
+    gtsp_sets = [[0]]+[[1+i,1+i+len(reward_idxs)] for i in range(len(reward_idxs))]+[[LAST_EL]]
+    print(gtsp_sets)
     #reamapped = remapping(reward_idxs)
     instance = produce_instance_from_graph(reduced_offset,gtsp_sets)
     soln = gtsp.solve_instance(instance)
@@ -76,7 +79,9 @@ def get_path(gtsp,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
     startidx = ordering.index(0)
     zerofirst = ordering[startidx:]+ordering[:startidx]
     goal_ordering = [i-1 for i in zerofirst[1:]]
-    return goal_ordering
+    removed_null = [i for i in goal_ordering if i < 1+len(reward_idxs)]
+    print(removed_null)
+    return removed_null
 
 def parse_output(tour_text):
     for line in tour_text.strip().split("\n"):
