@@ -1,4 +1,14 @@
 {
     "map_fname": "many_guards.svg.json",
-    "adjacency_list": "many_guards.graph.json"
+    "adjacency_list": "many_guards.graph.json",
+    "agent_linesight": 20,
+    "guard_linesight": 15,
+    "reward_collect_radius": 3,
+    "guard_locations": [
+        [141,105],
+        [81,121],
+        [40,57],
+        [181,36]
+    ],
+    "agent_location": [157,144]
 }

@@ -10,6 +10,9 @@ def sqr(x):
 def dist(x1,y1,x2,y2):
     return math.sqrt(sqr(x1-x2)+sqr(y1-y2))
 
+def distc(p1,p2):
+    return dist(*p1,*p2)
+
 def closest(points,target):
     min_dist = 10e50
     min_idx = None
@@ -23,6 +26,17 @@ def closest(points,target):
 
 
 COORDS_AROUND = ((-1,0),(0,-1),(1,0),(0,1))
+
+def neg(p):
+    x,y = p
+    return (-x,-y)
+
+def scalar_mul(p,m):
+    x,y = p
+    return (x*m,y*m)
+
+def sub(p1,p2):
+    return add(p1,neg(p2))
 
 def add(p1,p2):
     ax,ay = p1

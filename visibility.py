@@ -2,6 +2,10 @@ import visilibity as vis
 
 EPSILON = 0.00000001
 
+def point_to_vis(point):
+    x,y = point
+    return vis.Point(x,y)
+
 def points_to_vis_points(tupled_points):
     return [vis.Point(x,y) for x,y in tupled_points]
 
@@ -64,3 +68,9 @@ class LibVisibility:
         pointlist = vis_poly_to_pointlist(isovist)
         #print(pointlist)
         return pointlist
+
+    def can_see(self,p1,p2):
+        p1 = point_to_vis(p1)
+        p2 = point_to_vis(p2)
+        poly = vis.Visibility_Polygon(p1, self.environment, EPSILON)
+        return p2._in(poly)

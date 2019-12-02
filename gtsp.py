@@ -69,7 +69,7 @@ def get_path(gtsp,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
     reduced_offset = padback_dist_mat(reduced,len(rew_adds)+1,max_reward_benefit)
     LAST_EL = 1+len(reward_idxs)*2
     reduced_offset[0,LAST_EL] = reduced_offset[LAST_EL,0] = max_reward_benefit/4
-    gtsp_sets = [[0]]+[[1+i,1+i+len(reward_idxs)] for i in range(len(reward_idxs))]+[[LAST_EL]]
+    gtsp_sets = [[0],[LAST_EL]]+[[1+i,1+i+len(reward_idxs)] for i in range(len(reward_idxs))]
     print(gtsp_sets)
     #reamapped = remapping(reward_idxs)
     instance = produce_instance_from_graph(reduced_offset,gtsp_sets)
@@ -79,6 +79,7 @@ def get_path(gtsp,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
     startidx = ordering.index(0)
     zerofirst = ordering[startidx:]+ordering[:startidx]
     goal_ordering = [i-1 for i in zerofirst[1:]]
+    #removes added nodes
     removed_null = [i for i in goal_ordering if i < 1+len(reward_idxs)]
     print(removed_null)
     return removed_null
