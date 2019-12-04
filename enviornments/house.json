@@ -1,9 +1,9 @@
 {
     "map_fname": "house.svg.json",
     "adjacency_list": "house.graph.json",
-    "agent_linesight": 150,
-    "guard_linesight": 100,
-    "reward_collect_radius": 3,
+    "agent_linesight": 50,
+    "guard_linesight": 40,
+    "reward_collect_radius": 5,
     "guard_locations": [
         [56,118]
     ],

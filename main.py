@@ -43,7 +43,7 @@ def renderSight(screen,map_info,poly,cen,radius,color):
     poly_screen.set_alpha(128)
 
     if poly:
-        pygame.draw.polygon(poly_screen,color,poly)
+        pygame.draw.polygon(poly_screen,color+(128,),poly)
 
     #pygame.draw.circle(poly_screen, color, cen, radius)
 
@@ -82,13 +82,13 @@ def find_path_points(visibilty_info, gtsp,start, goals):
     counts = visibilty_info["counts"]
     start_idx = coord_math.closest(plist,start)
     goals_idxs = [coord_math.closest(plist,g) for g in goals]
-    ordering = get_path(gtsp,adj_list,counts,start_idx,goals_idxs,500000)
+    ordering = get_path(gtsp,plist,adj_list,counts,start_idx,goals_idxs,500000)
     old_goal = start_idx
     resulting_path = []
     print(ordering)
     for new_goal_idx in ordering:
         new_goal = goals_idxs[new_goal_idx]
-        new_path = dikstras(old_goal,counts,adj_list,[new_goal])
+        new_path = dikstras(old_goal,counts,plist,adj_list,[new_goal])
         resulting_path += new_path
         old_goal = new_goal
     print(resulting_path)

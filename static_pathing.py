@@ -1,4 +1,5 @@
 import heapq
+import coord_math
 
 class PriorityQueue:
     def __init__(self):
@@ -13,7 +14,7 @@ class PriorityQueue:
         return len(self.q) == 0
 
 
-def dikstras_dists(start,travel_costs,adj_list,goals):
+def dikstras_dists(start,travel_costs,points,adj_list,goals):
     travel_heap = PriorityQueue()
     visited_parents = dict()#{start:0.0}
     travel_heap.push((0.0,start,None))
@@ -34,7 +35,9 @@ def dikstras_dists(start,travel_costs,adj_list,goals):
 
             for newc in adj_list[coord]:
                 if newc not in visited_parents:
-                    travel_cost = travel_costs[newc]
+                    trav_dist =  coord_math.distc(points[newc],points[coord])
+                    travel_cost = 0.01 + travel_costs[newc] *trav_dist
+                    #print(trav_dist)
                     travel_heap.push((val+travel_cost,newc,coord))
 
     if goals_hit != len(goals):
@@ -42,7 +45,7 @@ def dikstras_dists(start,travel_costs,adj_list,goals):
     else:
         return goal_dists
 
-def dikstras(start,travel_costs,adj_list,goals):
+def dikstras(start,travel_costs,points,adj_list,goals):
     travel_heap = PriorityQueue()
     visited_parents = dict()#{start:0.0}
     travel_heap.push((0.0,start,None))
@@ -57,7 +60,8 @@ def dikstras(start,travel_costs,adj_list,goals):
 
             for newc in adj_list[coord]:
                 if newc not in visited_parents:
-                    travel_cost = travel_costs[newc]
+                    trav_dist =  coord_math.distc(points[newc],points[coord])
+                    travel_cost = 0.01 + travel_costs[newc] *trav_dist
                     travel_heap.push((val+travel_cost,newc,coord))
 
     if res_coord is None:

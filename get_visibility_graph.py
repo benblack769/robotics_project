@@ -1,7 +1,8 @@
 import argparse
 import json
 from visibility import LibVisibility
-from struct import Struct
+from struct_ import Struct
+import math
 
 def discritize(width,height,space):
     points = []
@@ -15,8 +16,16 @@ def manhattan(p1,p2):
     x2,y2 = p2
     return abs(x1-x2)+abs(y1-y2)
 
+def sqr(x):
+    return x * x
+
+def euclid(p1,p2):
+    x1,y1 = p1
+    x2,y2 = p2
+    return math.sqrt(sqr(x1-x2)+sqr(y1-y2))
+
 def points_are_adjacent(p1,p2,space):
-    return manhattan(p1,p2) < space*1.001
+    return euclid(p1,p2) < space*1.501
 
 def prune_graph(graph,points,space):
     new_graph = []

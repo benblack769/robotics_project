@@ -49,10 +49,10 @@ def get_translated_sets(translator,start,reward_idxs,max_reward_benefit):
     for ridx in reward_idxs:
         set = 1
 
-def get_dist_mat(adj_graph,weights,goals):
+def get_dist_mat(points,adj_graph,weights,goals):
     dist_mat = np.zeros([len(goals),len(goals)],dtype=np.int64)
     for i in range(len(goals)):
-        dists = dikstras_dists(goals[i],weights,adj_graph,goals)
+        dists = dikstras_dists(goals[i],weights,points,adj_graph,goals)
         for j in range(len(goals)):
             dist = dists[j]
             if i == j:
@@ -61,9 +61,9 @@ def get_dist_mat(adj_graph,weights,goals):
     return dist_mat
 
 
-def get_path(gtsp,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
+def get_path(gtsp,points,adj_graph,weights,start_idx,reward_idxs,max_reward_benefit):
     all_reward_idxs = [start_idx]+reward_idxs
-    dist_mat = get_dist_mat(adj_graph,weights,all_reward_idxs)
+    dist_mat = get_dist_mat(points,adj_graph,weights,all_reward_idxs)
     reduced = dist_mat#reduce_distance_matrix(dist_mat,reamapped)
     rew_adds = [len(all_reward_idxs)+i for i in range(len(reward_idxs))]
     reduced_offset = padback_dist_mat(reduced,len(rew_adds)+1,max_reward_benefit)
@@ -131,7 +131,7 @@ class GTSP:
                     line = self.proc.stdout.readline()
                     #print(line,flush=True)
                     if b"Tour Ordering" in line:
-                        time.sleep(0.1)
+                        time.sleep(0.2)
                         with open(outFile.name) as outFile:
                             return outFile.read()
 
@@ -145,5 +145,5 @@ if __name__=="__main__":
     rewards = [5000,421,8214,6281]
     start = 3219
     for i in range(10):
-        out = get_path(tsp_solver,visibilty_info["adj_list"],visibilty_info['counts'],start,rewards,500000)
+        out = get_path(tsp_solver,visibilty_info["points"],visibilty_info["adj_list"],visibilty_info['counts'],start,rewards,500000)
         print(out)
