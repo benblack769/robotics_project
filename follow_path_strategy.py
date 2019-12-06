@@ -2,6 +2,7 @@ import coord_math
 from coord_math import *
 
 class Follower:
+    NEEDS_EXPLORING_DATA = False
     def __init__(self,path,start_coord):
         self.path = path
         init_path_idx = closest(path,start_coord)
@@ -23,5 +24,14 @@ class Follower:
     def get_coord(self):
         return self.coord
 
-    def moved(self,new_pos):
-        self.coord = new_pos
+    def moved(self,move_vector):
+        self.coord = coord_math.add(self.coord,move_vector)
+
+    def on_guard_sight(self,guard_point):
+        # doesn't use seen guards at all
+        return
+
+    def on_object_sight(self,object_point):
+        #print(object_point)
+        # doesn't use seen objects at all
+        return

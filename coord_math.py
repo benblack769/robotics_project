@@ -43,6 +43,12 @@ def add(p1,p2):
     bx,by = p2
     return (ax+bx,ay+by)
 
+def midpoint(source,dest):
+    vector = sub(dest,source)
+    half_vec = scalar_mul(vector,0.5)
+    midpoint = add(source,half_vec)
+    return midpoint
+
 def raytrace2dgrid(x1,y1,x2,y2):
     cx = int(x1)
     cy = int(y1)

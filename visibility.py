@@ -61,13 +61,17 @@ class LibVisibility:
         return res
 
     def get_visibilily_polygon(self,origin):
-        ox,oy = origin
-        origin_vis = vis.Point(ox,oy)
-        #print(origin_vis)
+        origin_vis = point_to_vis(origin)
         isovist = vis.Visibility_Polygon(origin_vis, self.environment, EPSILON)
         pointlist = vis_poly_to_pointlist(isovist)
-        #print(pointlist)
         return pointlist
+
+    def get_libvis_polygon(self,origin):
+        origin_vis = point_to_vis(origin)
+        return vis.Visibility_Polygon(origin_vis, self.environment, EPSILON)
+
+    def in_vispoly(self, vispoly, point):
+        return point_to_vis(point)._in(vispoly)
 
     def can_see(self,p1,p2):
         p1 = point_to_vis(p1)

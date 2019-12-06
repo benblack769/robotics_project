@@ -1,5 +1,16 @@
 import coord_math
 
+
+def find_block_intersect(libvis,source,dest):
+    if coord_math.distc(source,dest) < 3:
+        return dest
+    midpoint = coord_math.midpoint(source,dest)
+
+    if not libvis.can_see(source,midpoint):
+        return find_block_intersect(libvis,source,midpoint)
+    else:
+        return find_block_intersect(libvis,midpoint,dest)
+
 class EnviornmentCoordinator:
     def __init__(self,libvis,env_values,agent,guards,rewards):
         self.libvis = libvis
@@ -12,13 +23,32 @@ class EnviornmentCoordinator:
         self.reward_collected = 0
 
     def step_move(self):
+        # set line of sight of movers
+        agent = self.agent
+        for guard in self.guards:
+            if (self.libvis.can_see(agent.get_coord(),guard.get_coord()) and
+                    coord_math.distc(agent.get_coord(),guard.get_coord())):
+                agent.on_guard_sight(guard.get_coord())
+
+        if self.agent.NEEDS_EXPLORING_DATA:
+            agent_coord = self.agent.get_coord()
+            for ray in coord_math.get_rays(agent_coord,47,self.env_values.agent_linesight):
+                if not self.libvis.can_see(agent_coord,ray):
+                    self.agent.on_object_sight(find_block_intersect(self.libvis,agent_coord,ray))
+
+        # move movers
         for mover in self.movers:
             move_dir = mover.move()
             move_dist = coord_math.distc((0,0),move_dir)
             if move_dist > 1.0:
                 move_dir = coord_math.scalar_mul(move_dir,1.0/move_dist)
             #print(move_dir)
-            mover.moved(coord_math.add(mover.get_coord(),move_dir))
+            src_coord = mover.get_coord()
+            dest_coord = coord_math.add(src_coord,move_dir)
+            if not self.libvis.can_see(src_coord,dest_coord):
+                print("mover at {} tried to move though wall!".format(src_coord))
+                #exit(0)
+            mover.moved(dest_coord)
 
         # check if agent is found by guard
         agent_loc = self.agent.get_coord()
@@ -27,9 +57,9 @@ class EnviornmentCoordinator:
             if (coord_math.distc(agent_loc,guard_loc) < self.env_values.guard_linesight and
                     self.libvis.can_see(agent_loc,guard_loc)):
                 self.agent_found = True
-                print(agent_loc)
-                print(guard_loc)
-                print(coord_math.distc(agent_loc,guard_loc))
+                #print(agent_loc)
+                #print(guard_loc)
+                #print(coord_math.distc(agent_loc,guard_loc))
 
         # check if agent has collected reward, and execute collection
         new_reward_list = []

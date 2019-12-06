@@ -85,13 +85,13 @@ def find_path_points(visibilty_info, gtsp,start, goals):
     ordering = get_path(gtsp,plist,adj_list,counts,start_idx,goals_idxs,500000)
     old_goal = start_idx
     resulting_path = []
-    print(ordering)
+    #print(ordering)
     for new_goal_idx in ordering:
         new_goal = goals_idxs[new_goal_idx]
         new_path = dikstras(old_goal,counts,plist,adj_list,[new_goal])
         resulting_path += new_path
         old_goal = new_goal
-    print(resulting_path)
+    #print(resulting_path)
     return resulting_path
 
 
@@ -192,7 +192,7 @@ def main():
         #renderSight(screen,map_info,poly)
 
         #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
-        #renderPath(screen,visibilty_info,path_targets)
+        renderPath(screen,visibilty_info,path_targets)
 
         #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 
