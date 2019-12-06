@@ -27,7 +27,7 @@ class EnviornmentCoordinator:
         agent = self.agent
         for guard in self.guards:
             if (self.libvis.can_see(agent.get_coord(),guard.get_coord()) and
-                    coord_math.distc(agent.get_coord(),guard.get_coord())):
+                    coord_math.distc(agent.get_coord(),guard.get_coord()) < self.env_values.agent_linesight):
                 agent.on_guard_sight(guard.get_coord())
 
         if self.agent.NEEDS_EXPLORING_DATA:
@@ -48,7 +48,7 @@ class EnviornmentCoordinator:
             if not self.libvis.can_see(src_coord,dest_coord):
                 print("mover at {} tried to move though wall!".format(src_coord))
                 #exit(0)
-            mover.moved(dest_coord)
+            mover.moved(move_dir)
 
         # check if agent is found by guard
         agent_loc = self.agent.get_coord()

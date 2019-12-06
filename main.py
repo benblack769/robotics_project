@@ -178,6 +178,7 @@ def main():
 
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
+            print("point: ",agent_point)
             pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
             poly = libvis.get_visibilily_polygon(agent_point)
             renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)

@@ -4,6 +4,8 @@ class DynamicAgentStrategy:
         self.coord = start
         self.libvis = libvis
         self.pathing_graph = pathing_graph
+        self.guards_seen = []
+        self.cost_map = defaultdict(int)
 
     def move(self):
         return (1,0)#direction of movement
@@ -16,6 +18,7 @@ class DynamicAgentStrategy:
 
     def on_guard_sight(self,guard_point):
         # check guard position
+        self.guards_seen.append((time,guard_point))
         pass
 
     def on_object_sight(self,object_point):

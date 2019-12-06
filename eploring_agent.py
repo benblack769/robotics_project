@@ -108,6 +108,8 @@ class AgentDecisionMaker:
         self.reward_collect_radius = env_data['reward_collect_radius']
         self.x=0
         self.y=0
+        self.timestep = 0
+        self.timed_guard_sight_posses = []
         self.guard_sight_counts = Counter()
         self.sight_counts = Counter()
         self.static_map = defaultdict(lambda:STATIC_HIDDEN)
@@ -117,6 +119,19 @@ class AgentDecisionMaker:
 
     def ipos(self):
         return (int(self.x),int(self.y))
+
+    def update_guard_sight(self):
+        new_guard_sight = []
+        for time,point in self.timed_guard_sight_posses:
+            if time < 5:
+                new_guard_sight.append((time+1,point))
+
+        self.timed_guard_sight_posses = new_guard_sight
+
+    def get_current_guard_sight(self):
+        #sight_points = set()
+        #for
+        pass
 
     def update_clear(self,all_clear_posses,end_pos):
         rx,ry = end_pos
@@ -224,4 +239,5 @@ class AgentDecisionMaker:
         return xweight,yweight
 
     def moved(self,new_coord):
-        self.x,self.y = new_coord
+        self.x,self.y = coord_math.add(self.get_coord(),new_coord)
+        self.timestep += 1
