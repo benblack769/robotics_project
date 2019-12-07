@@ -66,7 +66,9 @@ def main():
     old_fname_parts = args.json_fname.split(".")
     print(old_fname_parts)
     new_fname = ".".join(old_fname_parts[:-1])+".graph.json"
+    new_fname_full = ".".join(old_fname_parts[:-1])+".fullgraph.json"
     json.dump(fin_dict,open(new_fname,'w'))
+    json.dump(adj_list,open(new_fname_full,'w'))
 
 if __name__=="__main__":
     main()
