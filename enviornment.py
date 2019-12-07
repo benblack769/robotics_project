@@ -74,7 +74,7 @@ class EnviornmentCoordinator:
 
 
     def game_finished(self):
-        return self.agent_found
+        return self.agent_found or not self.rewards
 
     def game_result(self):
         return self.reward_collected

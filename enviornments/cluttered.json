@@ -1,0 +1,11 @@
+{
+    "map_fname": "cluttered.svg.json",
+    "adjacency_list": "cluttered.graph.json",
+    "agent_linesight": 50,
+    "guard_linesight": 40,
+    "reward_collect_radius": 5,
+    "guard_locations": [
+        [30,420]
+    ],
+    "agent_location": [580,20]
+}

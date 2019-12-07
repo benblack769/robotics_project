@@ -82,10 +82,12 @@ def find_path_points(visibilty_info, gtsp,start, goals):
     counts = visibilty_info["counts"]
     start_idx = coord_math.closest(plist,start)
     goals_idxs = [coord_math.closest(plist,g) for g in goals]
-    ordering = get_path(gtsp,plist,adj_list,counts,start_idx,goals_idxs,500000)
+    ordering = get_path(gtsp,plist,adj_list,counts,start_idx,goals_idxs,5000000)
     old_goal = start_idx
     resulting_path = []
     #print(ordering)
+    print("ordering")
+    print(ordering)
     for new_goal_idx in ordering:
         new_goal = goals_idxs[new_goal_idx]
         new_path = dikstras(old_goal,counts,plist,adj_list,[new_goal])
@@ -170,11 +172,11 @@ def main():
         #poly = libvis.get_visibilily_polygon((count, count))
         #print(poly)
         #time.sleep(0.01)
-        #counts = visibilty_info['counts']
-        #avg_value = sum(counts,0)/len(counts)
-        #for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
+        counts = visibilty_info['counts']
+        avg_value = sum(counts,0)/len(counts)
+        for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
             #print(value)
-        #    pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/avg_value))
+            pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
 
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
@@ -199,9 +201,9 @@ def main():
 
         # Flip the display
         pygame.display.flip()
-        #SAMPLE_RATE = 5
-        if args.produce_video:
-            pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count))
+        SAMPLE_RATE = 3
+        if args.produce_video and frame_count % SAMPLE_RATE == 0:
+            pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count//SAMPLE_RATE))
         frame_count += 1
 
 
