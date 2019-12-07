@@ -103,8 +103,10 @@ int main(int argc, const char ** argv){
     Graph pathing_graph = calc_pathing_graph(vis_graph,points);
     std::cout << pathing_graph.size() << "\n";
 
-    auto unif = uniform(pathing_graph,300);
-    print_output(unif,"out.weightmap.json");
+    auto unif1 = uniform(pathing_graph,300);
+    auto unif2 = uniform(pathing_graph,300);
+    print_output(unif1,"agent.weightmap.json");
+    print_output(unif2,"guard.weightmap.json");
     //std::cout << points.size() << "\n";
     //std::cout << points[0].x << "\n";
 }

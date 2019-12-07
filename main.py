@@ -58,9 +58,8 @@ def renderSight(screen,map_info,poly,cen,radius,color):
 
     screen.blit(poly_screen, (0,0))
 
-def renderPath(screen,visibilty_info,path_targets):
-    if path_targets:
-        point_targets = [visibilty_info["points"][t] for t in path_targets]
+def renderPath(screen,point_targets):
+    if point_targets:
         prevp = point_targets[0]
         for nextp in point_targets[1:]:
             pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
@@ -119,15 +118,22 @@ def sample_path(start,weightmap,adj_list):
     for t in range(len(weightmap)):
         vals = np.asarray(adj_list[point])
         probs = np.asarray(weightmap[t][point][:len(vals)])
-        print(len(vals))
-        print(len(probs))
+        #print(len(vals))
+        #print(len(probs))
         next_point = np.random.choice(a=vals,p=probs)
         next_point = int(next_point)
         path.append(next_point)
         point = next_point
     return path
 
-
+def sample_path_points(visibilty_info, start_coord,weightmap):
+    plist = visibilty_info['points']
+    start_idx = coord_math.closest(plist,start_coord)
+    #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
+    path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
+    graph_points = visibilty_info['points']
+    path_points = [graph_points[x] for x in path_targets]
+    return path_points
 
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
@@ -148,22 +154,19 @@ def main():
 
     map_info = Struct(**json.load(open(env_values.map_fname)))
 
-    weightmap = json.load(open(env_values.weightmap))
+    agent_weightmap = json.load(open(env_values.agent_weightmap))
+    guard_weightmap = json.load(open(env_values.guard_weightmap))
 
     print(map_info.blocker_polygons)
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
-    plist = visibilty_info['points']
     start_coord = env_values.agent_location
-    start_idx = coord_math.closest(plist,start_coord)
-    #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
-    path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
-    graph_points = visibilty_info['points']
-    path_points = [graph_points[x] for x in path_targets]
-
+    path_points = sample_path_points(visibilty_info,start_coord,agent_weightmap)
+    guard_path_points = sample_path_points(visibilty_info,env_values.guard_locations,guard_weightmap)
+    print(path_points)
     agent = Follower(path_points,start_coord)
-    guards = [Follower(map_info.guard_dests,guard_loc) for guard_loc in env_values.guard_locations]
+    guards = [Follower(guard_path_points,env_values.guard_locations) ]
     enviornment = EnviornmentCoordinator(libvis,env_values,agent,guards,map_info.reward_points)
 
     pygame.init()
@@ -216,7 +219,7 @@ def main():
         #renderSight(screen,map_info,poly)
 
         #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
-        renderPath(screen,visibilty_info,path_targets)
+        renderPath(screen,path_points)
 
         #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 

@@ -1,8 +1,8 @@
 {
     "map_fname": "enviornments/winding_path.svg.json",
     "adjacency_list": "enviornments/winding_path.graph.json",
-    "agent_linesight": 50,
-    "guard_linesight": 40,
+    "agent_linesight": 5000,
+    "guard_linesight": 5000,
     "reward_collect_radius": 5,
     "guard_locations": [],
     "agent_location": [1,1]
