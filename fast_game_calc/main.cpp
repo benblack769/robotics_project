@@ -11,8 +11,10 @@ struct Point{
 };
 using EdgeList = std::vector<uint32_t>;
 using Graph = std::vector<EdgeList>;
-using WeightMap = std::vector<std::array<double,5>>;
+
 using WeightAlloc = std::vector<double>;
+
+using WeightMap = std::vector<std::array<double,5>>;
 using WeightMaps = std::vector<WeightMap>;
 using WeightPop = std::vector<WeightMaps>;
 
@@ -51,7 +53,23 @@ Graph calc_pathing_graph(Graph & full_graph,std::vector<Point> & points){
     }
     return small_graph;
 }
-
+WeightMaps uniform(Graph & pathing_graph,int time){
+    WeightMaps res(time,WeightMap(pathing_graph.size()));
+    for(int t = 0; t < time; t++){
+        for(int n = 0; n < pathing_graph.size(); n++){
+            size_t edge_len = pathing_graph[n].size();
+            for(int e = 0; e < edge_len; e++){
+                res[t][n][e] = 1.0/edge_len;
+            }
+        }
+    }
+    return res;
+}
+void print_output(WeightMaps & map,std::string filename){
+    json res(map);
+    std::ofstream file(filename);
+    file << res.dump() << std::endl;
+}
 #define arr_to_point(arr) Point{arr[0].get<double>(),arr[1].get<double>()}
 int main(int argc, const char ** argv){
     assert(argc == 4 && "needs three arguments, the filename of the enviornment and of the visibility info graph and the full visiblity graph");
@@ -85,6 +103,8 @@ int main(int argc, const char ** argv){
     Graph pathing_graph = calc_pathing_graph(vis_graph,points);
     std::cout << pathing_graph.size() << "\n";
 
+    auto unif = uniform(pathing_graph,300);
+    print_output(unif,"out.weightmap.json");
     //std::cout << points.size() << "\n";
     //std::cout << points[0].x << "\n";
 }

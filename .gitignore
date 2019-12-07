@@ -4,3 +4,5 @@ img_data
 *.gif
 *.fullgraph.json
 a.out
+fast_game_calc/game_calc
+*.weightmap.*

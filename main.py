@@ -108,6 +108,15 @@ def save_video():
     ]
     subprocess.call(ffmpeg_call)
 
+def sample_path(start,weightmap,adj_list):
+    path = [start]
+    point = start
+    for t in range(len(weightmap)):
+        next_point = np.random.choice(a=np.asarray(adj_list[point]),p=np.asarray(weightmap[point]))
+        next_point = int(next_point)
+        path.append(next_point)
+        point = next_point
+    return path
 
 
 
@@ -126,16 +135,20 @@ def main():
 
     env_values = Struct(**json.load(open(args.json_fname)))
 
-    visibilty_info = json.load(open("enviornments/"+env_values.adjacency_list))
+    visibilty_info = json.load(open(env_values.adjacency_list))
 
-    map_info = Struct(**json.load(open("enviornments/"+env_values.map_fname)))
+    map_info = Struct(**json.load(open(env_values.map_fname)))
+
+    weightmap = json.load(open(env_values.weightmap))
 
     print(map_info.blocker_polygons)
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
     start_coord = env_values.agent_location
-    path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
+    start_idx = coord_math.closest(plist,start)
+    #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
+    path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
     graph_points = visibilty_info['points']
     path_points = [graph_points[x] for x in path_targets]
 

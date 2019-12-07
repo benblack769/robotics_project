@@ -25,7 +25,7 @@ def euclid(p1,p2):
     return math.sqrt(sqr(x1-x2)+sqr(y1-y2))
 
 def points_are_adjacent(p1,p2,space):
-    return euclid(p1,p2) < space*1.501
+    return euclid(p1,p2) < space*1.01
 
 def prune_graph(graph,points,space):
     new_graph = []
@@ -46,7 +46,7 @@ def main():
 
     SPACE = 5
 
-    map_parser = Struct(**json.load(open("enviornments/"+env_values['map_fname'])))
+    map_parser = Struct(**json.load(open(env_values['map_fname'])))
     print(map_parser.blocker_polygons)
     discritized_space_points = discritize(map_parser.width,map_parser.height,SPACE)
 
