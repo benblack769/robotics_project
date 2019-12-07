@@ -14,6 +14,7 @@ from follow_path_strategy import Follower
 from static_pathing import dikstras
 from struct_ import Struct
 from gtsp import GTSP,get_path
+import numpy as np
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -113,8 +114,14 @@ def save_video():
 def sample_path(start,weightmap,adj_list):
     path = [start]
     point = start
+    #print(point)
+    #proint()
     for t in range(len(weightmap)):
-        next_point = np.random.choice(a=np.asarray(adj_list[point]),p=np.asarray(weightmap[point]))
+        vals = np.asarray(adj_list[point])
+        probs = np.asarray(weightmap[t][point][:len(vals)])
+        print(len(vals))
+        print(len(probs))
+        next_point = np.random.choice(a=vals,p=probs)
         next_point = int(next_point)
         path.append(next_point)
         point = next_point
@@ -147,8 +154,9 @@ def main():
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
+    plist = visibilty_info['points']
     start_coord = env_values.agent_location
-    start_idx = coord_math.closest(plist,start)
+    start_idx = coord_math.closest(plist,start_coord)
     #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
     path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
     graph_points = visibilty_info['points']
