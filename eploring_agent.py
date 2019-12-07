@@ -110,6 +110,7 @@ class AgentDecisionMaker:
         self.y=0
         self.timestep = 0
         self.timed_guard_sight_posses = []
+        self.current_clear_sightings = []
         self.guard_sight_counts = Counter()
         self.sight_counts = Counter()
         self.static_map = defaultdict(lambda:STATIC_HIDDEN)
@@ -129,9 +130,11 @@ class AgentDecisionMaker:
         self.timed_guard_sight_posses = new_guard_sight
 
     def get_current_guard_sight(self):
-        #sight_points = set()
-        #for
-        pass
+        guard_sightings = set()
+        for time,sight_pos in self.timed_guard_sight_posses:
+            sight_rad = self.guard_linesight+5
+            guard_sightings |= get_sight_locs(sight_rad,sight_pos,self.static_map)
+        return guard_sightings
 
     def update_clear(self,all_clear_posses,end_pos):
         rx,ry = end_pos
@@ -167,7 +170,7 @@ class AgentDecisionMaker:
             ))
         return "\n".join(res)
 
-    def update_maps(self,pointcloud):
+    def update_maps(self,point):
         all_clear_posses = set()
         guard_sight_posses = set()
         cur_guard_locs = []
@@ -206,10 +209,11 @@ class AgentDecisionMaker:
             return None,None
 
     def on_object_sight(self,obj_point):
-        pass
+        self.static_map[obj_point] = STATIC_BLOCKED
+        self.current_clear_sightings.append(obj_point)
 
     def on_guard_sight(self,guard_point):
-        pass
+        self.timed_guard_sight_posses.append((0,guard_point))
 
     def on_sight(self,pointcloud):
         map_goal,guard_sight_posses = self.update_maps(pointcloud)
@@ -241,3 +245,5 @@ class AgentDecisionMaker:
     def moved(self,new_coord):
         self.x,self.y = coord_math.add(self.get_coord(),new_coord)
         self.timestep += 1
+        self.current_block_sightings = []
+        self.update_guard_sight()
