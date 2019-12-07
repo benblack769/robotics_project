@@ -24,3 +24,4 @@ class DynamicAgentStrategy:
     def on_object_sight(self,object_point):
         # doesn't use seen objects at all
         return
+#hey this is god_create_bugs
