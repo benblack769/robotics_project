@@ -82,8 +82,6 @@ def draw_exploring_agent(screen,map_info,agent):
                 color = None
                 if (x,y) in cur_guard_sightings:
                     color = (255,0,0,128)
-                elif agent.block_density[(x,y)] > 0:
-                    color = (255,255,0,128)
                 elif val == exploring_agent.STATIC_BLOCKED:
                     color = (0,0,0,128)
                 elif (x,y) in should_travel:

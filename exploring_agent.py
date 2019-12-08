@@ -105,7 +105,6 @@ class AgentDecisionMaker:
         self.guard_sight_counts = Counter()
         #self.sight_counts = Counter()
         self.current_path = []
-        self.block_density = Counter()
         self.static_map = defaultdict(lambda:STATIC_HIDDEN)
 
     def get_coord(self):
@@ -143,35 +142,10 @@ class AgentDecisionMaker:
             rpos = pos
             guard_sight_val = 1000000000 if pos in cur_guard_sight else 0
             sight_density = guard_sight_counts[rpos]#/self.timestep
-            block_density = self.block_density[rpos]
-            travel_cost = sqr(sqr(sight_density+0.1)+0.1*block_density)
+            travel_cost = sqr(sqr(sight_density+0.1))
             #print(travel_cost)
             travel_costs[pos] = travel_cost + guard_sight_val
         return travel_costs
-
-    def update_block_densities(self):
-        curp = self.ipos()
-        clear_rad = self.agent_linesight//2
-        # for x in range(-clear_rad,clear_rad+1):
-        #     for y in range(-clear_rad,clear_rad+1):
-        #         pos = (x,y)
-        #         pos = coord_math.add(pos,curp)
-        #         self.block_density[pos] = 0
-        return
-
-        for x in range(-clear_rad,clear_rad+1):
-            for y in range(-clear_rad,clear_rad+1):
-                pos = (x,y)
-                pos = coord_math.add(pos,curp)
-                if pos in self.static_map and self.static_map[pos] == STATIC_BLOCKED:
-                    ap_set = False
-                    if not ap_set:
-                        r = 10
-                        for ax in range(-r,r+1):
-                            for ay in range(-r,r+1):
-                                ap = coord_math.add((ax,ay),pos)
-                                self.block_density[ap] += 1.0/(sqr(ax)+sqr(ay)+0.1)
-
 
     def update_static_map(self):
         for rx,ry in self.current_clear_sightings:
@@ -206,7 +180,6 @@ class AgentDecisionMaker:
         self.timestep += 1
         self.update_static_map()
         self.update_guard_sight()
-        self.update_block_densities()
 
     def move(self):
         cur_guard_sightings = self.get_current_guard_sight()
