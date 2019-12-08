@@ -1,11 +1,11 @@
 {
     "map_fname": "enviornments/cluttered.svg.json",
     "adjacency_list": "enviornments/cluttered.graph.json",
+    "agent_weightmap": "wm_img_dir/agent.weightmap.json",
+    "guard_weightmap": "wm_img_dir/guard.weightmap.json",
     "agent_linesight": 5000,
     "guard_linesight": 5000,
     "reward_collect_radius": 5,
-    "guard_locations": [
-        [30,420]
-    ],
+    "guard_locations": [30,420],
     "agent_location": [580,20]
 }

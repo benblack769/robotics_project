@@ -97,18 +97,22 @@ def find_path_points(visibilty_info, gtsp,start, goals):
     return resulting_path
 
 
-def save_video():
+
+def save_video(img_dir,out_name):
     ffmpeg_call = [
         "ffmpeg",
         "-y",# overwrite output.mp4 if already there
         "-hide_banner","-loglevel","error", #don't print out unnecessary stuff
-        "-pattern_type", "glob","-i","img_data/data*.png",# get input from image list
+        "-pattern_type", "glob","-i","{}data*.png".format(img_dir),# get input from image list
         "-c:v","libx264",#deine output format
         "-r","30", #define output sample rate
         "-pix_fmt","yuv420p",#???
-        "output.mp4"
+        out_name
     ]
     subprocess.call(ffmpeg_call)
+    shutil.rmtree(img_dir)
+
+
 
 def sample_path(start,weightmap,adj_list):
     path = [start]
@@ -139,14 +143,19 @@ def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
+    parser.add_argument('-D', '--no_display', action='store_true',help="disables drawing to screen")
     args = parser.parse_args()
+    print(args.no_display)
 
-    if os.path.exists("img_data"):
-        shutil.rmtree("img_data/")
+    basename = os.path.basename(args.json_fname).split(".")[0]
+    img_dir = basename+"_img_dir/"
+    video_name = basename+"_vid.mp4"
+    if os.path.exists(img_dir):
+        shutil.rmtree(img_dir)
     if args.produce_video:
-        os.makedirs("img_data/",exist_ok=True)
+        os.makedirs(img_dir,exist_ok=True)
 
-    gtsp = GTSP()
+    #gtsp = GTSP()
 
     env_values = Struct(**json.load(open(args.json_fname)))
 
@@ -171,16 +180,20 @@ def main():
 
     pygame.init()
 
-    screen = pygame.display.set_mode([map_info.width, map_info.height])
+    if not args.no_display:
+        screen = pygame.display.set_mode([map_info.width, map_info.height])
+    else:
+        screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)
 
     running = True
     count = 1
     frame_count = 0
     while running:
         # Did the user click the window close button?
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.no_display:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         enviornment.step_move()
         if enviornment.game_finished():
@@ -224,15 +237,17 @@ def main():
         #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 
         # Flip the display
-        pygame.display.flip()
+
+        if not args.no_display:
+            pygame.display.flip()
         SAMPLE_RATE = 3
         if args.produce_video and frame_count % SAMPLE_RATE == 0:
-            pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count//SAMPLE_RATE))
+            pygame.image.save(screen, img_dir+"data{0:05d}.png".format(frame_count//SAMPLE_RATE))
         frame_count += 1
 
 
     if args.produce_video:
-        save_video()
+        save_video(img_dir,video_name)
     # Done! Time to quit.
     pygame.quit()
 
