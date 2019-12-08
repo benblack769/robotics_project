@@ -127,18 +127,19 @@ def find_path_points(visibilty_info, gtsp,start, goals):
     return resulting_path
 
 
-def save_video():
+def save_video(img_dir,out_name):
     ffmpeg_call = [
         "ffmpeg",
         "-y",# overwrite output.mp4 if already there
         "-hide_banner","-loglevel","error", #don't print out unnecessary stuff
-        "-pattern_type", "glob","-i","img_data/data*.png",# get input from image list
+        "-pattern_type", "glob","-i","{}data*.png".format(img_dir),# get input from image list
         "-c:v","libx264",#deine output format
         "-r","30", #define output sample rate
         "-pix_fmt","yuv420p",#???
-        "output.mp4"
+        out_name
     ]
     subprocess.call(ffmpeg_call)
+    shutil.rmtree(img_dir)
 
 
 
@@ -151,10 +152,13 @@ def main():
     args = parser.parse_args()
     print(args.no_display)
 
-    if os.path.exists("img_data"):
-        shutil.rmtree("img_data/")
+    basename = os.path.basename(args.json_fname).split(".")[0]
+    img_dir = basename+"_img_dir/"
+    video_name = basename+"_vid.mp4"
+    if os.path.exists(img_dir):
+        shutil.rmtree(img_dir)
     if args.produce_video:
-        os.makedirs("img_data/",exist_ok=True)
+        os.makedirs(img_dir,exist_ok=True)
 
     #gtsp = GTSP()
 
@@ -209,11 +213,11 @@ def main():
         #poly = libvis.get_visibilily_polygon((count, count))
         #print(poly)
         #time.sleep(0.01)
-        counts = visibilty_info['counts']
-        avg_value = sum(counts,0)/len(counts)
-        for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
-            #print(value)
-            pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
+        # counts = visibilty_info['counts']
+        # avg_value = sum(counts,0)/len(counts)
+        # for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
+        #     #print(value)
+        #     pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
 
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
@@ -243,12 +247,12 @@ def main():
 
         SAMPLE_RATE = 3
         if args.produce_video and frame_count % SAMPLE_RATE == 0:
-            pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count//SAMPLE_RATE))
+            pygame.image.save(screen, img_dir+"data{0:05d}.png".format(frame_count//SAMPLE_RATE))
         frame_count += 1
 
 
     if args.produce_video:
-        save_video()
+        save_video(img_dir,video_name)
     # Done! Time to quit.
     pygame.quit()
 
