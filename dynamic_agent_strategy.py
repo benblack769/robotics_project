@@ -37,6 +37,6 @@ class DynamicAgentStrategy:
         self.guards_seen.append((time,guard_point))
         pass
 
-    def on_object_sight(self,object_point):
+    def on_object_sight(self,object_point,is_block):
         # doesn't use seen objects at all
         return

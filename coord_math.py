@@ -54,7 +54,13 @@ def raytrace2dgrid(x1,y1,x2,y2):
     range = np.arange(RANGE_LEN)/RANGE_LEN
     xvec = (x2-x1)*range + x1
     yvec = (y2-y1)*range + y1
-    tuples = np.stack([xvec,yvec],axis=1).astype(np.int32).tolist()
+    pointvec = np.stack([xvec,yvec],axis=1)
+    #alts = np.concatenate([pointvec
+    #,pointvec+np.asarray([1,0])
+    #,pointvec+np.asarray([0,1])
+    #,pointvec+np.asarray([0.5,0.5])
+    #,pointvec+np.asarray([0.5,-0.5])],axis=0)
+    tuples = pointvec.astype(np.int32).tolist()
     res = []
     prev = None
     for p in tuples:

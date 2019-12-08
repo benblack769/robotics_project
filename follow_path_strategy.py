@@ -40,7 +40,7 @@ class Follower:
         # doesn't use reward seen at all
         return
 
-    def on_object_sight(self,object_point):
+    def on_object_sight(self,object_point,is_block):
         #print(object_point)
         # doesn't use seen objects at all
         return

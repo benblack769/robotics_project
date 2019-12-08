@@ -66,6 +66,37 @@ def renderPath(screen,point_targets):
             pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
             prevp = nextp
 
+def draw_exploring_agent(screen,map_info,agent):
+    poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+    poly_screen.set_alpha(128)
+
+    # fill hidden with gray
+    poly_screen.fill((128, 128, 128,64))
+
+    cur_guard_sightings = agent.get_current_guard_sight()
+    should_travel = exploring_agent.get_unseen_neighboring_open(agent.static_map)
+    for x in range(0,map_info.width):
+        for y in range(0,map_info.height):
+            if (x,y) in agent.static_map:
+                val = agent.static_map[(x,y)]
+                color = None
+                if (x,y) in cur_guard_sightings:
+                    color = (255,0,0,128)
+                elif agent.block_density[(x,y)] > 0:
+                    color = (255,255,0,128)
+                elif val == exploring_agent.STATIC_BLOCKED:
+                    color = (0,0,0,128)
+                elif (x,y) in should_travel:
+                    color = (0,255,0,128)
+                elif val == exploring_agent.STATIC_OPEN:
+                    color = (0,0,0,0)
+                else:
+                    color = (0,255,0,255)
+                poly_screen.fill(color,rect=(x,y,1,1))
+
+    renderPath(poly_screen,agent.current_path)
+    screen.blit(poly_screen, (0,0))
+
 def intify(coord):
     x,y = coord
     return int(x),int(y)
@@ -179,51 +210,52 @@ def main():
         if enviornment.game_finished():
             print("result: {}".format(enviornment.game_result()))
             running = False
-
-        # Fill the background with white
-        screen.fill((255, 255, 255))
-
-        renderPolys(screen,map_info.blocker_polygons)
-        # Draw a solid blue circle in the center
-        count += 1
-        #poly = libvis.get_visibilily_polygon((count, count))
-        #print(poly)
-        #time.sleep(0.01)
-        # counts = visibilty_info['counts']
-        # avg_value = sum(counts,0)/len(counts)
-        # for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
-        #     #print(value)
-        #     pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
-
-        for agent_point in enviornment.agent_points():
-            agent_color = (0, 0, 255)
-            print("point: ",agent_point)
-            pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
-            poly = libvis.get_visibilily_polygon(agent_point)
-            renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
-
-        for guard_point in enviornment.guard_points():
-            guard_color = (0, 255, 0)
-            pygame.draw.circle(screen, guard_color, intify(guard_point), 5)
-            poly = libvis.get_visibilily_polygon(guard_point)
-            renderSight(screen,map_info,poly,intify(guard_point),env_values.guard_linesight,guard_color)
-
-        renderRewards(screen,enviornment.reward_points())
-        #renderSight(screen,map_info,poly)
-
-        draw_exploring_agent(screen,map_info,agent)
-        #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
-        #renderPath(screen,visibilty_info,path_targets)
-
-        #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
-
-        # Flip the display
-        if not args.no_display:
-            pygame.display.flip()
-
         SAMPLE_RATE = 3
-        if args.produce_video and frame_count % SAMPLE_RATE == 0:
-            pygame.image.save(screen, img_dir+"data{0:05d}.png".format(frame_count//SAMPLE_RATE))
+        if frame_count % SAMPLE_RATE == 0:
+
+            # Fill the background with white
+            screen.fill((255, 255, 255))
+
+            renderPolys(screen,map_info.blocker_polygons)
+            # Draw a solid blue circle in the center
+            count += 1
+            #poly = libvis.get_visibilily_polygon((count, count))
+            #print(poly)
+            #time.sleep(0.01)
+            # counts = visibilty_info['counts']
+            # avg_value = sum(counts,0)/len(counts)
+            # for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
+            #     #print(value)
+            #     pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
+
+            for agent_point in enviornment.agent_points():
+                agent_color = (0, 0, 255)
+                print("point: ",agent_point)
+                pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
+                poly = libvis.get_visibilily_polygon(agent_point)
+                renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
+
+            for guard_point in enviornment.guard_points():
+                guard_color = (0, 255, 0)
+                pygame.draw.circle(screen, guard_color, intify(guard_point), 5)
+                poly = libvis.get_visibilily_polygon(guard_point)
+                renderSight(screen,map_info,poly,intify(guard_point),env_values.guard_linesight,guard_color)
+
+            renderRewards(screen,enviornment.reward_points())
+            #renderSight(screen,map_info,poly)
+
+            draw_exploring_agent(screen,map_info,agent)
+            #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
+            #renderPath(screen,visibilty_info,path_targets)
+
+            #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
+
+            # Flip the display
+            if not args.no_display:
+                pygame.display.flip()
+
+            if args.produce_video:
+                pygame.image.save(screen, img_dir+"data{0:05d}.png".format(frame_count//SAMPLE_RATE))
         frame_count += 1
 
 

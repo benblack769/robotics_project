@@ -32,11 +32,11 @@ class EnviornmentCoordinator:
 
         if self.agent.NEEDS_EXPLORING_DATA:
             agent_coord = self.agent.get_coord()
-            for ray in coord_math.get_rays(agent_coord,157,self.env_values.agent_linesight):
+            for ray in coord_math.get_rays(agent_coord,57,self.env_values.agent_linesight):
                 if not self.libvis.can_see(agent_coord,ray):
-                    self.agent.on_object_sight(find_block_intersect(self.libvis,agent_coord,ray))
+                    self.agent.on_object_sight(find_block_intersect(self.libvis,agent_coord,ray),True)
                 else:
-                    self.agent.on_object_sight(ray)
+                    self.agent.on_object_sight(ray,False)
         # move movers
         for mover in self.movers:
             move_dir = mover.move()
