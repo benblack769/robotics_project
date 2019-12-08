@@ -6,3 +6,6 @@ img_data
 a.out
 fast_game_calc/game_calc
 *.weightmap.*
+*.vscode
+qt_proj
+build-*
