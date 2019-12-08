@@ -53,6 +53,31 @@ Graph calc_pathing_graph(Graph & full_graph,std::vector<Point> & points){
     }
     return small_graph;
 }
+void forward_pass(WeightMaps & theif, int theif_start,
+    WeightMaps & guard, int guard_start,
+    Graph & graph,
+    WeightAlloc & end_probs,
+    double & total_reward){
+    total_reward = 0;
+    int graph_size = theif[0].size();
+    assert(graph_size == guard[0].size() && graph_size == graph.size());
+
+    end_probs.assign(graph_size,0.0);
+    WeightAlloc cur_probs(graph_size,0.0);
+    cur_probs[theif_start] = 1.0;
+    WeightAlloc next_probs(graph_size,0.0);
+
+    assert(theif.size() == guard.size());
+    int time_steps = theif.size();
+    double reward_collected = 0.0;
+    for(int t = 0; t < time_steps; t++){
+        for(int n = 0; n < graph_size; n++){
+            for(int j = 0; j < graph[n].size(); j++){
+                next_probs[]
+            }
+        }
+    }
+}
 WeightMaps uniform(Graph & pathing_graph,int time){
     WeightMaps res(time,WeightMap(pathing_graph.size()));
     for(int t = 0; t < time; t++){
