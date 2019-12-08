@@ -66,35 +66,6 @@ def renderPath(screen,point_targets):
             pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
             prevp = nextp
 
-def draw_exploring_agent(screen,map_info,agent):
-    poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-    poly_screen.set_alpha(128)
-
-    # fill hidden with gray
-    poly_screen.fill((128, 128, 128,64))
-
-    cur_guard_sightings = agent.get_current_guard_sight()
-    should_travel = exploring_agent.get_unseen_neighboring_open(agent.static_map)
-    for x in range(0,map_info.width):
-        for y in range(0,map_info.height):
-            if (x,y) in agent.static_map:
-                val = agent.static_map[(x,y)]
-                color = None
-                if (x,y) in cur_guard_sightings:
-                    color = (255,0,0,128)
-                elif val == exploring_agent.STATIC_BLOCKED:
-                    color = (0,0,0,128)
-                elif (x,y) in should_travel:
-                    color = (0,255,0,128)
-                elif val == exploring_agent.STATIC_OPEN:
-                    color = (0,0,0,0)
-                else:
-                    color = (0,255,0,255)
-                poly_screen.fill(color,rect=(x,y,1,1))
-
-    renderPath(poly_screen,agent.current_path)
-    screen.blit(poly_screen, (0,0))
-
 def intify(coord):
     x,y = coord
     return int(x),int(y)
@@ -176,7 +147,12 @@ def main():
     #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
     #graph_points = visibilty_info['points']
     #path_points = [graph_points[x] for x in path_targets]
-
+    def make_pathfinder():
+        def path_finder(pointweights,goals):
+            plist = visibilty_info['points']
+            for i in range(len(plist)):
+                if plist[i] in pointweights:
+                    pass
     #agent = Follower(path_points,start_coord)
     agent = AgentDecisionMaker(start_coord,env_values)
     guards = [Follower(map_info.guard_dests,guard_loc) for guard_loc in env_values.guard_locations]

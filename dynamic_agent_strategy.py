@@ -1,9 +1,25 @@
+import coord_math
+import random
+from collections import Counter,defaultdict
+import tempfile
+import heapq
+import math
+
+def disc(coord):
+    x,y = coord
+    x = int(round((x-2)/5))*5+2
+    y = int(round((y-2)/5))*5+2
+    return x,y
+
 class DynamicAgentStrategy:
     NEEDS_EXPLORING_DATA=False
-    def __init__(self, start, env_data, reward_points, pathing_graph, libvis):
+    def __init__(self, start, env_data, reward_points, path_finder):
+        '''
+        pathfinder takes in  (point_weights,goals)
+        '''
         self.coord = start
         self.libvis = libvis
-        self.pathing_graph = pathing_graph
+        self.path_finder = path_finder
         self.guards_seen = []
         self.cost_map = defaultdict(int)
 
@@ -24,4 +40,3 @@ class DynamicAgentStrategy:
     def on_object_sight(self,object_point):
         # doesn't use seen objects at all
         return
-#hey this is god_create_bugs
