@@ -32,10 +32,11 @@ class EnviornmentCoordinator:
 
         if self.agent.NEEDS_EXPLORING_DATA:
             agent_coord = self.agent.get_coord()
-            for ray in coord_math.get_rays(agent_coord,47,self.env_values.agent_linesight):
+            for ray in coord_math.get_rays(agent_coord,157,self.env_values.agent_linesight):
                 if not self.libvis.can_see(agent_coord,ray):
                     self.agent.on_object_sight(find_block_intersect(self.libvis,agent_coord,ray))
-
+                else:
+                    self.agent.on_object_sight(ray)
         # move movers
         for mover in self.movers:
             move_dir = mover.move()
@@ -64,10 +65,15 @@ class EnviornmentCoordinator:
         # check if agent has collected reward, and execute collection
         new_reward_list = []
         for rew_point in self.rewards:
-            if (coord_math.distc(agent_loc,rew_point) < self.env_values.reward_collect_radius and
-                    self.libvis.can_see(agent_loc,rew_point) and
-                    not self.agent_found):
-                self.reward_collected += 1
+            if self.libvis.can_see(agent_loc,rew_point):
+                if coord_math.distc(agent_loc,rew_point) < self.env_values.agent_linesight:
+                    self.agent.on_reward_sight(rew_point)
+
+                if coord_math.distc(agent_loc,rew_point) < self.env_values.reward_collect_radius:
+                    self.reward_collected += 1
+                    self.agent.on_reward_collected(rew_point)
+                else:
+                    new_reward_list.append(rew_point)
             else:
                 new_reward_list.append(rew_point)
         self.rewards = new_reward_list

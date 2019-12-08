@@ -15,10 +15,11 @@ class Follower:
             self.next_point = (self.next_point+1)%len(self.path)
             next_coord = self.path[self.next_point]
 
-        trajectories = get_rays((0,0),19,1.0)
+        '''trajectories = get_rays((0,0),19,1.0)
         best_dir = trajectories[closest(trajectories,sub(next_coord,self.coord))]
         print(best_dir)
-        print(self.coord)
+        print(self.coord)'''
+        best_dir = coord_math.sub(next_coord,self.get_coord())
         return best_dir
 
     def get_coord(self):
@@ -29,6 +30,14 @@ class Follower:
 
     def on_guard_sight(self,guard_point):
         # doesn't use seen guards at all
+        return
+
+    def on_reward_sight(self,reward_loc):
+        # doesn't use reward seen at all
+        return
+
+    def on_reward_collected(self,reward_loc):
+        # doesn't use reward seen at all
         return
 
     def on_object_sight(self,object_point):

@@ -14,6 +14,8 @@ from follow_path_strategy import Follower
 from static_pathing import dikstras
 from struct_ import Struct
 from gtsp import GTSP,get_path
+from exploring_agent import AgentDecisionMaker
+import exploring_agent
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -57,13 +59,41 @@ def renderSight(screen,map_info,poly,cen,radius,color):
 
     screen.blit(poly_screen, (0,0))
 
-def renderPath(screen,visibilty_info,path_targets):
-    if path_targets:
-        point_targets = [visibilty_info["points"][t] for t in path_targets]
+def renderPath(screen,point_targets):
+    if point_targets:
         prevp = point_targets[0]
         for nextp in point_targets[1:]:
             pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
             prevp = nextp
+
+def draw_exploring_agent(screen,map_info,agent):
+    poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+    poly_screen.set_alpha(128)
+
+    # fill hidden with gray
+    poly_screen.fill((128, 128, 128,64))
+
+    cur_guard_sightings = agent.get_current_guard_sight()
+    should_travel = exploring_agent.get_unseen_neighboring_open(agent.static_map)
+    for x in range(0,map_info.width):
+        for y in range(0,map_info.height):
+            if (x,y) in agent.static_map:
+                val = agent.static_map[(x,y)]
+                color = None
+                if (x,y) in cur_guard_sightings:
+                    color = (255,0,0,128)
+                elif val == exploring_agent.STATIC_BLOCKED:
+                    color = (0,0,0,128)
+                elif (x,y) in should_travel:
+                    color = (0,255,0,128)
+                elif val == exploring_agent.STATIC_OPEN:
+                    color = (0,0,0,0)
+                else:
+                    color = (0,255,0,255)
+                poly_screen.fill(color,rect=(x,y,1,1))
+
+    renderPath(poly_screen,agent.current_path)
+    screen.blit(poly_screen, (0,0))
 
 def intify(coord):
     x,y = coord
@@ -117,14 +147,16 @@ def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
+    parser.add_argument('-D', '--no_display', action='store_true',help="disables drawing to screen")
     args = parser.parse_args()
+    print(args.no_display)
 
     if os.path.exists("img_data"):
         shutil.rmtree("img_data/")
     if args.produce_video:
         os.makedirs("img_data/",exist_ok=True)
 
-    gtsp = GTSP()
+    #gtsp = GTSP()
 
     env_values = Struct(**json.load(open(args.json_fname)))
 
@@ -137,26 +169,31 @@ def main():
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
     start_coord = env_values.agent_location
-    path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
-    graph_points = visibilty_info['points']
-    path_points = [graph_points[x] for x in path_targets]
+    #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
+    #graph_points = visibilty_info['points']
+    #path_points = [graph_points[x] for x in path_targets]
 
-    agent = Follower(path_points,start_coord)
+    #agent = Follower(path_points,start_coord)
+    agent = AgentDecisionMaker(start_coord,env_values)
     guards = [Follower(map_info.guard_dests,guard_loc) for guard_loc in env_values.guard_locations]
     enviornment = EnviornmentCoordinator(libvis,env_values,agent,guards,map_info.reward_points)
 
     pygame.init()
 
-    screen = pygame.display.set_mode([map_info.width, map_info.height])
+    if not args.no_display:
+        screen = pygame.display.set_mode([map_info.width, map_info.height])
+    else:
+        screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)
 
     running = True
     count = 1
     frame_count = 0
     while running:
         # Did the user click the window close button?
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.no_display:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         enviornment.step_move()
         if enviornment.game_finished():
@@ -194,13 +231,16 @@ def main():
         renderRewards(screen,enviornment.reward_points())
         #renderSight(screen,map_info,poly)
 
+        draw_exploring_agent(screen,map_info,agent)
         #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
-        renderPath(screen,visibilty_info,path_targets)
+        #renderPath(screen,visibilty_info,path_targets)
 
         #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 
         # Flip the display
-        pygame.display.flip()
+        if not args.no_display:
+            pygame.display.flip()
+
         SAMPLE_RATE = 3
         if args.produce_video and frame_count % SAMPLE_RATE == 0:
             pygame.image.save(screen, "img_data/data{0:05d}.png".format(frame_count//SAMPLE_RATE))
