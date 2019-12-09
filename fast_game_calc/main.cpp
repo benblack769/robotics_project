@@ -3,7 +3,9 @@
 #include <cstring>
 #include <streambuf>
 #include <fstream>
+#include <string>
 #include "json.hpp"
+#include "cnpy.h"
 
 using json = nlohmann::json;
 struct Point{
@@ -34,8 +36,8 @@ Graph calc_pathing_graph(Graph & full_graph,std::vector<Point> & points,int targ
     assert(full_graph.size() == points.size());
     for(size_t n = 0; n < points.size(); n++){
         Point source = points[n];
-        for(size_t e = 0; e < full_graph[n].size(); e++){
-            Point dest = points[full_graph[n][e]];
+        for(size_t e : full_graph[n]){
+            Point dest = points[e];
             if(dist(source,dest) < target_dist+0.01){
                 small_graph[n].push_back(e);
             }
@@ -57,13 +59,23 @@ void update_weights(WeightAlloc & weight,WeightMap & move_map,Graph & move_graph
     }
     weight.swap(next_weights);
 }
-int col_rew = 0;
-int for_pass = 0;
+void check_mag(WeightAlloc & weight,bool is_bad){
+    double sum = 0;
+    for(double v : weight){
+        sum += v;
+    }
+    if(sum < 0.99 || sum > 1.01){
+        std::cout << "probaility: " <<sum << (is_bad ? "unstable\n" : "\n");
+    }
+}
+//int col_rew = 0;
+//int for_pass = 0;
 void forward_pass(WeightMaps & theif, size_t theif_start,
         WeightMaps & guard, size_t guard_start,
         WeightAlloc & rewards,
         Graph & vis_graph,
         Graph & move_graph,
+        WeightAllocs & guard_posses,
         WeightAllocs & theif_posses,
         WeightAllocs & end_rewards,
         double & total_reward
@@ -89,20 +101,7 @@ void forward_pass(WeightMaps & theif, size_t theif_start,
     WeightAlloc guard_probs(graph_size,0.0);
     guard_probs[guard_start] = 1.0;
 
-    double reward_collected = 0.0;
     for(size_t t = 0; t < time_steps; t++){
-        //theif sees reward
-        uint64_t start = clock();
-        for(size_t n = 0; n < graph_size; n++){
-            //double theif_prob = 0;
-            for(uint32_t e : vis_graph[n]){
-                double this_reward = theif_probs[e] * rewards[n];
-                end_rewards[t][e] += this_reward;
-                reward_collected += this_reward;
-            }
-        }
-        col_rew += clock() - start;
-
         //guard elmininate seen theif positions
         for(size_t n = 0; n < graph_size; n++){
             double guard_prob = 0;
@@ -111,20 +110,33 @@ void forward_pass(WeightMaps & theif, size_t theif_start,
             }
             theif_probs[n] -= theif_probs[n] * guard_prob;
         }
+        //theif sees reward
+        for(size_t n = 0; n < graph_size; n++){
+            //double theif_prob = 0;
+            for(uint32_t e : vis_graph[n]){
+                double this_reward = theif_probs[e] * rewards[n];
+                end_rewards[t][e] += this_reward;
+                total_reward += this_reward;
+            }
+        }
 
         theif_posses[t] = theif_probs;
-        //guard_posses[t] = guard_probs;
+        guard_posses[t] = guard_probs;
         update_weights(theif_probs,theif[t],move_graph);
         update_weights(guard_probs,guard[t],move_graph);
-        std::cout << "t" << t << std::endl;
+        if(t % 100 == 0){
+            check_mag(theif_probs,false);
+        }
+        check_mag(guard_probs,true);
+        //std::cout << "t" << t << std::endl;
     }
 }
 void update_based_off_rew(WeightAlloc & rewards,WeightMap & move_map,Graph & move_graph,double update_weight){
     size_t graph_size = rewards.size();
     //updates move weights based off expected future reward
     for(size_t n = 0; n < graph_size; n++){
-        size_t maxi = 0;
-        double max_rew = 0;
+        size_t maxi = -1;
+        double max_rew = -1;
         for(size_t j = 0; j < move_graph[n].size(); j++){
             size_t e = move_graph[n][j];
             double rew = rewards[e];
@@ -144,12 +156,15 @@ void backward_pass(WeightMaps & theif,
         WeightAlloc & rewards,
         Graph & vis_graph,
         Graph & move_graph,
+        const WeightAllocs & guard_posses,
         const WeightAllocs & theif_posses,
         const WeightAllocs & end_rewards,
-        const double update_weight
+        const double update_weight,
+        double & removed_rew
     ){
     //assert(total_reward > 0 && "algorithm is logically not possible when total reward is zero");
     //double inv_total_reward = 1.0/total_reward;
+    removed_rew = 0;
     size_t graph_size = theif[0].size();
     assert(graph_size == guard[0].size() &&
          graph_size == vis_graph.size()  &&
@@ -161,24 +176,32 @@ void backward_pass(WeightMaps & theif,
         time_steps == end_rewards.size());
 
     WeightAlloc future_reward_col = end_rewards[time_steps-1];
+    WeightAlloc guard_rem_rew(graph_size,0.0);
 
     for(size_t t = time_steps-1; t > 0; t--){
-        //theif updates move weights based off expected future reward
-        update_based_off_rew(future_reward_col,theif[t-1],move_graph,update_weight);
-
         //calculate the amount of reward that is removed by a guard being in a location
-        WeightAlloc guard_rem_rew(graph_size,0.0);
         for(size_t n = 0; n < graph_size; n++){
             for(uint32_t e : vis_graph[n]){
                 guard_rem_rew[n] += future_reward_col[e] * theif_posses[t][e];
+                double rm_reward = future_reward_col[e] * guard_posses[t][n];
+                future_reward_col[e] -= rm_reward;
+                removed_rew += rm_reward;
             }
+            //guard_rem_rew[n] *= guard_posses[t][n];
         }
-        update_based_off_rew(guard_rem_rew,theif[t-1],move_graph,update_weight);
-
+        WeightAlloc tmp_fut_rew = future_reward_col;
+        WeightAlloc tmp_gd_rew = guard_rem_rew;
         //update future reward collected map
         update_weights(future_reward_col,theif[t-1],move_graph);
+        update_weights(guard_rem_rew,guard[t-1],move_graph);
+        //theif updates move weights based off expected future reward
+        update_based_off_rew(tmp_fut_rew,theif[t-1],move_graph,update_weight);
+        update_based_off_rew(tmp_gd_rew,guard[t-1],move_graph,update_weight);
+
         for(size_t n = 0; n < graph_size; n++){
-            future_reward_col[n] += end_rewards[t-1][n];
+            for(uint32_t e : vis_graph[n]){
+                future_reward_col[n] += end_rewards[t-1][e];
+            }
         }
     }
 }
@@ -187,6 +210,9 @@ WeightMaps uniform(Graph & pathing_graph,size_t time){
     for(size_t t = 0; t < time; t++){
         for(size_t n = 0; n < pathing_graph.size(); n++){
             size_t edge_len = pathing_graph[n].size();
+             /*for(size_t e = 0; e < edge_len; e++){
+                 res[t][n][e] = 1.0/edge_len;
+             }*/
             double sum = 0;
             for(size_t e = 0; e < edge_len; e++){
                 res[t][n][e] = rand();
@@ -199,50 +225,73 @@ WeightMaps uniform(Graph & pathing_graph,size_t time){
     }
     return res;
 }
+void print_output(WeightMaps & map,std::string filename){
+    json res(map);
+    std::ofstream file(filename);
+    file << res.dump() << std::endl;
+}
+void print_output_npy(WeightMaps & map,std::string filename){
+    size_t time = map.size(),graph_size = map[0].size(),edge_size = map[0][0].size();
+    std::vector<double> data(time*graph_size*edge_size);
+    for(int t= 0; t < time; t++){
+        for(size_t n = 0; n < graph_size; n++){
+            for(size_t e = 0; e < edge_size; e++){
+                data[(t*graph_size+n)*edge_size+e] = map[t][n][e];
+            }
+        }
+    }
+    //save it to file
+    cnpy::npy_save(filename,&data[0],{time,graph_size,edge_size},"w");
+}
 void step_update(
         WeightMaps & theif, size_t theif_start,
         WeightMaps & guard, size_t guard_start,
         WeightAlloc & rewards,
-        WeightAllocs & vis_graph,
+        Graph & vis_graph,
         Graph & move_graph,
         double update_weight,
-        size_t num_steps){
+        size_t num_steps,
+        std::string agent_path,
+        std::string guard_path
+    ){
     for(size_t step = 0; step < num_steps; step++){
+        WeightAllocs guard_posses(theif.size(),WeightAlloc(vis_graph.size(),0.0));
         WeightAllocs theif_posses(theif.size(),WeightAlloc(vis_graph.size(),0.0));
         WeightAllocs end_posses(theif.size(),WeightAlloc(vis_graph.size(),0.0));
         double tot_rew = 0;
-        uint64_t start = clock();
+        double removed_rew = 0;
         forward_pass(
             theif,theif_start,
             guard,guard_start,
             rewards,
             vis_graph,
             move_graph,
+            guard_posses,
             theif_posses,
             end_posses,
             tot_rew
         );
-        for_pass += clock() - start;
-        std::cout << col_rew << "\n";
-        std::cout << for_pass << "\n";
-        exit(0);
         backward_pass(
             theif,
             guard,
             rewards,
             vis_graph,
             move_graph,
+            guard_posses,
             theif_posses,
             end_posses,
-            update_weight
+            update_weight,
+            removed_rew
         );
-        std::cout << tot_rew << std::endl;
+        std::cout << "newstep: " << step << ", reward: " << tot_rew << ", removed reward: " << removed_rew << std::endl;
+        const int SAVE_ITERS = 15;
+        if(step % SAVE_ITERS == 5){
+            std::cout << "started save, do not interrup!" << std::endl;
+            print_output_npy(theif,"/mnt/disk/robo_bigfiles/"+agent_path+"."+std::to_string(step/SAVE_ITERS));
+            print_output_npy(guard,"/mnt/disk/robo_bigfiles/"+guard_path+"."+std::to_string(step/SAVE_ITERS));
+            std::cout << "finished save." << std::endl;
+        }
     }
-}
-void print_output(WeightMaps & map,std::string filename){
-    json res(map);
-    std::ofstream file(filename);
-    file << res.dump() << std::endl;
 }
 size_t nearest_point(Point p,std::vector<Point> & points){
     size_t neari = -1;
@@ -261,10 +310,21 @@ WeightAllocs graph_to_binmap(Graph & graph){
 
     for(size_t n = 0; n < graph.size(); n++){
         for(size_t e : graph[n]){
-            map[e] = 1.0;
+            map[n][e] = 1.0;
         }
     }
     return map;
+}
+Graph parse_graph(json & json){
+    Graph graph;
+    for(auto & node_info : json){
+        EdgeList edges;
+        for(auto & edge : node_info){
+            edges.push_back(edge.get<uint32_t>());
+        }
+        graph.push_back(edges);
+    }
+    return graph;
 }
 #define arr_to_point(arr) Point{arr[0].get<double>(),arr[1].get<double>()}
 int main(int argc, const char ** argv){
@@ -277,6 +337,8 @@ int main(int argc, const char ** argv){
     auto env_json = json::parse(read_file(env_fname));
     auto guard_loc_j = env_json.at("guard_locations");
     auto agent_loc_j = env_json.at("agent_location");
+    std::string agent_outpath = env_json.at("agent_weightmap").get<std::string>();
+    std::string guard_outpath = env_json.at("guard_weightmap").get<std::string>();
     std::string map_fname = env_json.at("map_fname").get<std::string>();
     std::string vis_info_fname = env_json.at("adjacency_list").get<std::string>();
     Point guard_loc = arr_to_point(guard_loc_j);//[0].get<double>();,guard_loc_j[1].get<double>()};
@@ -299,7 +361,6 @@ int main(int argc, const char ** argv){
         reward_vals[rew_i] = 1.0;
     }
 
-
     auto full_vis_info = json::parse(read_file(full_vis_fname));
     Graph vis_graph;
     for(auto & node_info : full_vis_info){
@@ -316,8 +377,8 @@ int main(int argc, const char ** argv){
     //WeightAllocs vis_graph_binmaps = graph_to_binmap(vis_graph);
 
     size_t time_steps = 1000;
-    size_t update_steps = 25;
-    double update_weight = 0.07;
+    size_t update_steps = 5000;
+    double update_weight = 0.02;
     auto theif_weights = uniform(pathing_graph,time_steps);
     auto guard_weights = uniform(pathing_graph,time_steps);
     std::cout << pathing_graph.size() << "\n";
@@ -328,10 +389,10 @@ int main(int argc, const char ** argv){
         pruned_vis_graph,
         pathing_graph,
         update_weight,
-        update_steps
-        );
-    print_output(theif_weights,"agent.weightmap.json");
-    print_output(guard_weights,"guard.weightmap.json");
+        update_steps,
+        agent_outpath,
+        guard_outpath
+    );
     //std::cout << points.size() << "\n";
     //std::cout << points[0].x << "\n";
 }

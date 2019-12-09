@@ -1,9 +1,11 @@
 {
     "map_fname": "enviornments/winding_path.svg.json",
     "adjacency_list": "enviornments/winding_path.graph.json",
-    "agent_linesight": 5000,
-    "guard_linesight": 5000,
+    "agent_weightmap": "wm_img_dir/winding_path_agent.weightmap.npy",
+    "guard_weightmap": "wm_img_dir/winding_path_guard.weightmap.npy",
+    "agent_linesight": 100,
+    "guard_linesight": 100,
     "reward_collect_radius": 5,
-    "guard_locations": [],
-    "agent_location": [1,1]
+    "guard_locations": [620,20],
+    "agent_location": [20,100]
 }

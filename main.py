@@ -163,8 +163,8 @@ def main():
 
     map_info = Struct(**json.load(open(env_values.map_fname)))
 
-    agent_weightmap = json.load(open(env_values.agent_weightmap))
-    guard_weightmap = json.load(open(env_values.guard_weightmap))
+    agent_weightmap = np.load((env_values.agent_weightmap))
+    guard_weightmap = np.load((env_values.guard_weightmap))
 
     print(map_info.blocker_polygons)
 
@@ -200,6 +200,9 @@ def main():
             print("result: {}".format(enviornment.game_result()))
             running = False
 
+        if frame_count > 1000:
+            running = False
+
         # Fill the background with white
         screen.fill((255, 255, 255))
 
@@ -209,11 +212,11 @@ def main():
         #poly = libvis.get_visibilily_polygon((count, count))
         #print(poly)
         #time.sleep(0.01)
-        counts = visibilty_info['counts']
-        avg_value = sum(counts,0)/len(counts)
-        for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
-            #print(value)
-            pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
+        # counts = visibilty_info['counts']
+        # avg_value = sum(counts,0)/len(counts)
+        # for point,value in zip(visibilty_info['points'],visibilty_info['counts']):
+        #     #print(value)
+        #     pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
 
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
