@@ -25,14 +25,16 @@ using WeightPop = std::vector<WeightMaps>;
 
 using PointRewards = std::vector<uint32_t>;
 
-using randgen = std::default_random_engine;
 using DenseGraph = std::vector<std::vector<char>>;
 using MoveDistMap = std::vector<std::vector<uint32_t>>;
 
+/*
+using randgen = std::default_random_engine;
 int rand_int(randgen & gen, int maxsize){
     std::uniform_int_distribution<int> distribution(0,maxsize-1);
     return distribution(gen);
 }
+*/
 struct Path{
     std::vector<uint32_t> travel_points;
     std::vector<uint32_t> dest_markers;
@@ -93,7 +95,8 @@ Graph parse_graph(json & json){
 }
 std::vector<uint32_t> move_dist_calculator(Graph & move_graph,size_t start){
     size_t graph_size = move_graph.size();
-    std::vector<uint32_t> dists(graph_size,-1);
+    constexpr uint32_t NULL_DIST = -1;
+    std::vector<uint32_t> dists(graph_size,NULL_DIST);
     std::vector<char> has_visited(graph_size,false);
     EdgeList cur_nodes;
     cur_nodes.push_back(start);
@@ -112,6 +115,9 @@ std::vector<uint32_t> move_dist_calculator(Graph & move_graph,size_t start){
         cur_nodes.swap(next_nodes);
         depth++;
     }
+    for(auto v : dists){
+        assert(v != NULL_DIST);
+    }
     return dists;
 }
 MoveDistMap move_dist_calculator(Graph & move_graph){
@@ -123,39 +129,51 @@ MoveDistMap move_dist_calculator(Graph & move_graph){
     return dists;
 }
 void bfs(Graph & move_graph,size_t start,size_t end,EdgeList & travel_points,size_t max_adds){
+    constexpr uint32_t NULL_PARENT = uint32_t(-1);
     size_t graph_size = move_graph.size();
-    std::vector<char> has_visited(graph_size,false);
+    std::vector<uint32_t> parents(graph_size,NULL_PARENT);
+    parents[start] = start;
     EdgeList cur_nodes;
     cur_nodes.push_back(start);
-    size_t num_adds = 0;
+    size_t depth = 0;
     while(cur_nodes.size()){
         EdgeList next_nodes;
         for(uint32_t n : cur_nodes){
-            if(!has_visited[n]){
-                has_visited[n] = true;
-                travel_points.push_back(n);
-                num_adds++;
-                if(n == end || num_adds >= max_adds){
-                    return;
-                }
-                for(uint32_t e : move_graph[n]){
+            if(n == end){
+                break;
+            }
+            for(uint32_t e : move_graph[n]){
+                if(parents[e] == NULL_PARENT){
                     next_nodes.push_back(e);
+                    parents[e] = n;
                 }
             }
         }
+        depth++;
         cur_nodes.swap(next_nodes);
     }
-    assert(false && "cannot reach end of path!");
+    EdgeList new_edges;
+    uint32_t cur_node = end;
+    while(cur_node != start){
+        new_edges.push_back(cur_node);
+        cur_node = parents[cur_node];
+    }
+    std::reverse(new_edges.begin(),new_edges.end());
+    if(new_edges.size() > max_adds){
+        new_edges.resize(max_adds);
+    }
+    travel_points.insert(travel_points.end(),new_edges.begin(),new_edges.end());
 }
 void generate_path(Path & path,size_t path_length,size_t src_point,Graph & move_graph){
     size_t graph_size = move_graph.size();
     size_t cur_point = src_point;
-    while(path_length < path.travel_points.size()){
+    while(path_length > path.travel_points.size()){
         size_t rand_point = rand()%graph_size;
         bfs(move_graph,cur_point,rand_point,path.travel_points,path_length-path.travel_points.size());
         path.dest_markers.push_back(path.travel_points.back());
         cur_point = path.travel_points.back();
     }
+    assert(path.dest_markers.size() > 1);
 }
 void generate_paths(PathCollection & paths,size_t path_length,Graph & move_graph,size_t src_point){
     for(Path & path : paths){
@@ -172,7 +190,7 @@ DenseGraph compute_vispairs(Graph & graph){
     }
     return res;
 }
-PointRewards evaluate_theif_rewards(Path & thief,EdgeList & rewards,DenseGraph & vis_graph){
+PointRewards evaluate_theif_rewards(Path & thief,EdgeList rewards,DenseGraph & vis_graph){
     PointRewards t_rew;
     for(uint32_t n : thief.travel_points){
         uint32_t cur_reward = 0;
@@ -190,7 +208,7 @@ PointRewards evaluate_theif_rewards(Path & thief,EdgeList & rewards,DenseGraph &
     }
     return t_rew;
 }
-std::vector<PointRewards> all_theif_rewards(PathCollection & theif_paths,EdgeList & rewards,DenseGraph & vis_graph){
+std::vector<PointRewards> all_theif_rewards(PathCollection & theif_paths,EdgeList rewards,DenseGraph & vis_graph){
     std::vector<PointRewards> res(theif_paths.size());
     for(size_t i = 0; i < theif_paths.size(); i++){
         res[i] = evaluate_theif_rewards(theif_paths[i],rewards,vis_graph);
@@ -210,10 +228,11 @@ void evaluate_rewards(Path & guard,Path & thief,PointRewards & theif_rewards,Den
             agent_reward += theif_rewards[n];
         }
     }
-    /*for(;n <travel_size; n++){
+    int guard_reward = 0;
+    for(;n <travel_size; n++){
         guard_reward += theif_rewards[n];
-    }*/
-    guard.total_reward -= agent_reward;
+    }
+    guard.total_reward += guard_reward;
     guard.age++;
     thief.total_reward += agent_reward;
     thief.age++;
@@ -232,37 +251,36 @@ uint32_t compute_length(EdgeList & path,MoveDistMap & dist_map){
     }
     return dist;
 }
-bool mutate_path(Path & path,Graph & move_graph,MoveDistMap & dist_map){
+bool mutate_path(Path & path,Graph & move_graph,MoveDistMap & dist_map,size_t start_loc){
     size_t path_length = path.travel_points.size();
     size_t graph_size = move_graph.size();
     if(rand()%3 == 0){
         //erase from end of path
-        size_t elim_end_path = rand()%(path.dest_markers.size()-1);
+        size_t elim_end_path = std::max(int(0),rand()%((int)path.dest_markers.size())-1);
         path.dest_markers.erase(path.dest_markers.begin()+elim_end_path,path.dest_markers.end());
-        size_t start_loc = path.travel_points.front();
         path.travel_points.clear();
         regen_path(path.travel_points,path.dest_markers,start_loc,move_graph);
-        generate_path(path,path_length,path.travel_points.back(),move_graph);
+        size_t start_gen = path.travel_points.size() ? path.travel_points.back() : start_loc;
+        generate_path(path,path_length,start_gen,move_graph);
+        assert(path.dest_markers.size() > 1);
+        assert(path.travel_points.size() == path_length);
         return true;
     }
     else{
         //erase from middle of path
-        size_t start_erase = rand()%(path.dest_markers.size()-1);
+        size_t start_erase = std::max(size_t(1),rand()%(path.dest_markers.size()));
         size_t end_erase = start_erase+rand()%(path.dest_markers.size()-start_erase);
 
-        size_t replace_size = rand()%(2*(end_erase - start_erase));
+        size_t replace_size = 1+rand()%(5+(end_erase - start_erase));
 
         EdgeList start_path(path.dest_markers.begin(),path.dest_markers.begin()+start_erase);
         EdgeList end_path(path.dest_markers.begin()+end_erase,path.dest_markers.end());
 
-        size_t len_start = compute_length(start_path,dist_map);
+        size_t len_start = compute_length(start_path,dist_map) + dist_map[start_loc][start_path.front()];
         size_t len_end = compute_length(end_path,dist_map);
 
         //regenerate start and end of path
-        size_t start_loc = path.travel_points.front();
         for(int tries = 0; tries < 10; tries++){
-            size_t start_middle = path.dest_markers[start_erase];
-            size_t end_middle = path.dest_markers[end_erase];
             EdgeList middle_path(replace_size);
             size_t dist_middle = 0;
             for(size_t i = 0; i < replace_size; i++){
@@ -271,16 +289,19 @@ bool mutate_path(Path & path,Graph & move_graph,MoveDistMap & dist_map){
                     dist_middle += dist_map[middle_path[i-1]][middle_path[i]];
                 }
             }
-            dist_middle += dist_map[middle_path[start_middle]][middle_path[0]];
-            dist_middle += dist_map[middle_path[replace_size-1]][end_middle];
+            dist_middle += dist_map[start_path.back()][middle_path.front()];
+            dist_middle += dist_map[middle_path.back()][end_path.front()];
             if(len_start + len_end + dist_middle < path_length){
                 path.dest_markers.clear();
-                path.dest_markers.insert(path.dest_markers.begin(),start_path.begin(),start_path.end());
-                path.dest_markers.insert(path.dest_markers.begin(),middle_path.begin(),middle_path.end());
-                path.dest_markers.insert(path.dest_markers.begin(),end_path.begin(),end_path.end());
+                path.dest_markers.insert(path.dest_markers.end(),start_path.begin(),start_path.end());
+                path.dest_markers.insert(path.dest_markers.end(),middle_path.begin(),middle_path.end());
+                path.dest_markers.insert(path.dest_markers.end(),end_path.begin(),end_path.end());
+
                 path.travel_points.clear();
                 regen_path(path.travel_points,path.dest_markers,start_loc,move_graph);
                 generate_path(path,path_length,path.travel_points.back(),move_graph);
+                assert(path.dest_markers.size() > 1);
+                assert(path.travel_points.size() == path_length);
                 return true;
             }
         }
@@ -300,11 +321,11 @@ int count_rewards(PathCollection & paths){
     }
     return sum;
 }
-void add_paths(PathCollection & paths,Graph & move_graph,MoveDistMap & dist_map,int num_to_add){
+void add_paths(PathCollection & paths,Graph & move_graph,MoveDistMap & dist_map,int num_to_add,int start_loc){
     size_t path_len = paths.size();
     for(int i = 0; i < num_to_add; i++){
         Path new_path = paths[rand()%path_len];
-        while(!mutate_path(new_path,move_graph,dist_map));
+        while(!mutate_path(new_path,move_graph,dist_map,start_loc));
         paths.push_back(new_path);
     }
 }
@@ -318,14 +339,17 @@ struct SortVal{
 void elim_pathcollection(PathCollection & paths,size_t res_size){
     std::vector<SortVal> sortl;
     for(size_t i = 0; i < paths.size(); i++){
-        sortl.push_back(SortVal{i,paths[i].total_reward});
+        sortl.push_back(SortVal{i,paths[i].total_reward+rand()%2});
     }
     std::sort(sortl.begin(),sortl.end());
     PathCollection new_paths;
     for(size_t i = 0; i < res_size; i++){
-        new_paths.push_back(std::move(paths[sortl[i].idx]));
+        new_paths.push_back(paths[sortl[i].idx]);
     }
+    std::cout << count_rewards(paths) << "  " << count_rewards(new_paths) << "\n";
+
     paths.swap(new_paths);
+    //new_paths.resize(res_size);
 }
 void compete_paths(Graph & move_graph,
                    Graph & vis_graph,
@@ -338,16 +362,18 @@ void compete_paths(Graph & move_graph,
     const size_t ADD_PATHS = 5;
     PathCollection guard_paths(NUM_PATHS);
     PathCollection theif_paths(NUM_PATHS);
+    std::cout << "initted1" << std::endl;
     generate_paths(guard_paths,PATH_LENGTH,move_graph,guard_start);
     generate_paths(theif_paths,PATH_LENGTH,move_graph,theif_start);
     DenseGraph dense_vis_graph = compute_vispairs(vis_graph);
     MoveDistMap dist_maps = move_dist_calculator(move_graph);
+    std::cout << "initted2" << std::endl;
     for(size_t i = 0; i < NUM_ITERS; i++){
         //evaluate theif rewards
+        add_paths(guard_paths,move_graph,dist_maps,ADD_PATHS,guard_start);
+        add_paths(theif_paths,move_graph,dist_maps,ADD_PATHS,theif_start);
         std::vector<PointRewards> theif_rewards = all_theif_rewards(theif_paths,reward_points,dense_vis_graph);
-
-        add_paths(guard_paths,move_graph,dist_maps,ADD_PATHS);
-        add_paths(theif_paths,move_graph,dist_maps,ADD_PATHS);
+        std::cout << "added" << std::endl;
         clear_rewards(guard_paths);
         clear_rewards(theif_paths);
         for(size_t t = 0; t < theif_paths.size(); t++){
@@ -355,6 +381,7 @@ void compete_paths(Graph & move_graph,
                 evaluate_rewards(guard_paths[g],theif_paths[t],theif_rewards[t],dense_vis_graph);
             }
         }
+        std::cout << "evaluated" << std::endl;
         elim_pathcollection(guard_paths,NUM_PATHS);
         elim_pathcollection(theif_paths,NUM_PATHS);
         std::cout << count_rewards(theif_paths) << std::endl;
@@ -413,8 +440,8 @@ int main(int argc, const char ** argv){
     //WeightAllocs vis_graph_binmaps = graph_to_binmap(vis_graph);
     std::cout << pathing_graph.size() << "\n";
     compete_paths(
-        pruned_vis_graph,
         pathing_graph,
+        pruned_vis_graph,
         reward_vals,//TODO:
         agent_idx,
         guard_idx
