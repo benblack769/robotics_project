@@ -15,6 +15,7 @@ from static_pathing import dikstras
 from struct_ import Struct
 from gtsp import GTSP,get_path
 import numpy as np
+import random
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -130,14 +131,16 @@ def sample_path(start,weightmap,adj_list):
         point = next_point
     return path
 
-def sample_path_points(visibilty_info, start_coord,weightmap):
+def sample_path_points(visibilty_info, start_coord,path_mixture):
     plist = visibilty_info['points']
-    start_idx = coord_math.closest(plist,start_coord)
+    chosen_path = random.choice(path_mixture)
+    res = [plist[c] for c in chosen_path]
+    #start_idx = coord_math.closest(plist,start_coord)
     #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
-    path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
-    graph_points = visibilty_info['points']
-    path_points = [graph_points[x] for x in path_targets]
-    return path_points
+    #path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
+    #graph_points = visibilty_info['points']
+    #path_points = [graph_points[x] for x in path_targets]
+    return res
 
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
@@ -163,8 +166,8 @@ def main():
 
     map_info = Struct(**json.load(open(env_values.map_fname)))
 
-    agent_weightmap = np.load((env_values.agent_weightmap))
-    guard_weightmap = np.load((env_values.guard_weightmap))
+    agent_weightmap = json.load(open(env_values.agent_weightmap))
+    guard_weightmap = json.load(open(env_values.guard_weightmap))
 
     #print(map_info.blocker_polygons)
 
@@ -200,7 +203,7 @@ def main():
             print("result: {}".format(enviornment.game_result()))
             running = False
 
-        if frame_count > 1000:
+        if frame_count > 500:
             running = False
 
         # Fill the background with white

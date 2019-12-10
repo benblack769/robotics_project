@@ -28,6 +28,13 @@ using PointRewards = std::vector<uint32_t>;
 using DenseGraph = std::vector<std::vector<char>>;
 using MoveDistMap = std::vector<std::vector<uint32_t>>;
 
+struct PtrPair{
+    void * v1;
+    void * v2;
+    bool operator == (PtrPair o)const{
+        return v1 == o.v1 && v2 == o.v2;
+    }
+};
 /*
 using randgen = std::default_random_engine;
 int rand_int(randgen & gen, int maxsize){
@@ -45,6 +52,18 @@ struct Path{
 constexpr int NUM_PATHS = 200;
 using PathCollection = std::vector<Path>;
 
+namespace std{
+    template<>
+    struct hash<PtrPair>{
+        size_t operator()(const PtrPair & P)const{
+            return hash<void*>()(P.v1) ^ hash<void*>()(P.v2);
+        }
+    };
+}
+struct ValPair{
+    int v1;
+    int v2;
+};
 
 std::string read_file(std::string filename){
     std::ifstream t(filename);
@@ -177,6 +196,7 @@ void generate_path(Path & path,size_t path_length,size_t src_point,Graph & move_
 }
 void generate_paths(PathCollection & paths,size_t path_length,Graph & move_graph,size_t src_point){
     for(Path & path : paths){
+        path.dest_markers = std::vector<uint32_t>();
         generate_path(path,path_length,src_point,move_graph);
     }
 }
@@ -215,12 +235,12 @@ std::vector<PointRewards> all_theif_rewards(PathCollection & theif_paths,EdgeLis
     }
     return res;
 }
-void evaluate_rewards(Path & guard,Path & thief,PointRewards & theif_rewards,DenseGraph & vis_graph){
+ValPair evaluate_rewards(Path & guard,Path & thief,PointRewards & theif_rewards,DenseGraph & vis_graph){
     size_t travel_size = guard.travel_points.size();
     assert(travel_size == thief.travel_points.size());
-    size_t n = 0;
     int agent_reward = 0;
-    for(; n <travel_size; n++){
+    size_t n = 0;
+    for(; n < travel_size; n++){
         if(vis_graph[guard.travel_points[n]][thief.travel_points[n]]){
             break;
         }
@@ -232,9 +252,22 @@ void evaluate_rewards(Path & guard,Path & thief,PointRewards & theif_rewards,Den
     for(;n <travel_size; n++){
         guard_reward += theif_rewards[n];
     }
-    guard.total_reward += guard_reward;
+    return ValPair{guard_reward,agent_reward};
+}
+void amortized_eval_rew(std::unordered_map<PtrPair,ValPair> & old_vals,
+        Path & guard,Path & thief,PointRewards & theif_rewards,DenseGraph & vis_graph){
+    PtrPair ptrp = {guard.travel_points.data(),thief.travel_points.data()};
+    ValPair res;
+    if(old_vals.count(ptrp)){
+        res = old_vals.at(ptrp);
+    }
+    else{
+        res = evaluate_rewards(guard,thief,theif_rewards,vis_graph);
+        old_vals[ptrp] = res;
+    }
+    guard.total_reward += res.v1;
     guard.age++;
-    thief.total_reward += agent_reward;
+    thief.total_reward += res.v2;
     thief.age++;
 }
 void regen_path(EdgeList & travel_path, EdgeList & path_markers,size_t start_loc,Graph & move_graph){
@@ -321,6 +354,13 @@ int count_rewards(PathCollection & paths){
     }
     return sum;
 }
+int count_age(PathCollection & paths){
+    int sum = 0;
+    for(Path & p : paths){
+        sum += p.age;
+    }
+    return sum;
+}
 void add_paths(PathCollection & paths,Graph & move_graph,MoveDistMap & dist_map,int num_to_add,int start_loc){
     size_t path_len = paths.size();
     for(int i = 0; i < num_to_add; i++){
@@ -337,54 +377,83 @@ struct SortVal{
     }
 };
 void elim_pathcollection(PathCollection & paths,size_t res_size){
+    int tot_rew = count_rewards(paths);
+    int reward_noise = tot_rew / 10;
     std::vector<SortVal> sortl;
     for(size_t i = 0; i < paths.size(); i++){
-        sortl.push_back(SortVal{i,paths[i].total_reward+rand()%2});
+        sortl.push_back(SortVal{i,paths[i].total_reward+rand()%reward_noise});
     }
     std::sort(sortl.begin(),sortl.end());
     PathCollection new_paths;
     for(size_t i = 0; i < res_size; i++){
-        new_paths.push_back(paths[sortl[i].idx]);
+        new_paths.push_back(std::move(paths[sortl[i].idx]));
     }
-    std::cout << count_rewards(paths) << "  " << count_rewards(new_paths) << "\n";
 
     paths.swap(new_paths);
     //new_paths.resize(res_size);
 }
+void save_paths(PathCollection & paths,std::string filename){
+    std::vector<std::vector<uint32_t>> ppaths;
+    for(Path & p : paths){
+        ppaths.push_back(p.travel_points);
+    }
+    json j_list(ppaths);
+    std::ofstream file(filename);
+    if(!file){
+        throw std::runtime_error("file " +filename+"failed to open");
+    }
+    file << j_list.dump() << '\n';
+}
 void compete_paths(Graph & move_graph,
-                   Graph & vis_graph,
+                    Graph & vis_graph,
+                    Graph & rew_graph,
                    EdgeList & reward_points,
                    size_t guard_start,
-                   size_t theif_start){
-    const size_t PATH_LENGTH = 1000;
-    const size_t NUM_PATHS = 100;
+                   size_t theif_start,
+                    std::string name){
+    const size_t PATH_LENGTH = 500;
+    const size_t NUM_PATHS = 1000;
     const size_t NUM_ITERS = 10000000;
-    const size_t ADD_PATHS = 5;
-    PathCollection guard_paths(NUM_PATHS);
-    PathCollection theif_paths(NUM_PATHS);
+    const size_t ADD_PATHS = 20;
+    PathCollection guard_paths(NUM_PATHS,Path{});
+    PathCollection theif_paths(NUM_PATHS,Path{});
     std::cout << "initted1" << std::endl;
     generate_paths(guard_paths,PATH_LENGTH,move_graph,guard_start);
     generate_paths(theif_paths,PATH_LENGTH,move_graph,theif_start);
     DenseGraph dense_vis_graph = compute_vispairs(vis_graph);
+    DenseGraph dense_rew_graph = compute_vispairs(rew_graph);
     MoveDistMap dist_maps = move_dist_calculator(move_graph);
     std::cout << "initted2" << std::endl;
+    int save_count = 0;
+    std::unordered_map<PtrPair,ValPair> old_evals;
     for(size_t i = 0; i < NUM_ITERS; i++){
         //evaluate theif rewards
         add_paths(guard_paths,move_graph,dist_maps,ADD_PATHS,guard_start);
         add_paths(theif_paths,move_graph,dist_maps,ADD_PATHS,theif_start);
-        std::vector<PointRewards> theif_rewards = all_theif_rewards(theif_paths,reward_points,dense_vis_graph);
-        std::cout << "added" << std::endl;
+        std::vector<PointRewards> theif_rewards = all_theif_rewards(theif_paths,reward_points,dense_rew_graph);
         clear_rewards(guard_paths);
         clear_rewards(theif_paths);
         for(size_t t = 0; t < theif_paths.size(); t++){
             for(size_t g = 0; g < guard_paths.size(); g++){
-                evaluate_rewards(guard_paths[g],theif_paths[t],theif_rewards[t],dense_vis_graph);
+                amortized_eval_rew(old_evals,guard_paths[g],theif_paths[t],theif_rewards[t],dense_vis_graph);
             }
         }
         std::cout << "evaluated" << std::endl;
         elim_pathcollection(guard_paths,NUM_PATHS);
         elim_pathcollection(theif_paths,NUM_PATHS);
-        std::cout << count_rewards(theif_paths) << std::endl;
+        std::cout << count_rewards(guard_paths)/double(count_age(guard_paths)) << "  "
+                    << count_rewards(theif_paths)/double(count_age(guard_paths)) << "\n";
+        if(i == (1 << save_count)*8){
+            std::cout << "saved\n";
+            std::string agent_fpath = "wm_img_dir/"+name+"_agent.weightmap.json."+std::to_string(save_count);
+            std::string guard_fpath = "wm_img_dir/"+name+"_guard.weightmap.json."+std::to_string(save_count);
+            save_paths(guard_paths,guard_fpath);
+            save_paths(theif_paths,agent_fpath);
+            save_count++;
+        }
+        if(i%(NUM_PATHS/ADD_PATHS) == 0){
+            old_evals.clear();
+        }
     }
 }
 
@@ -435,16 +504,20 @@ int main(int argc, const char ** argv){
     }
     assert(vis_graph.size() == points.size());
     int guard_linesight = env_json.at("guard_linesight").get<int>();
+    int reward_collect_rad = env_json.at("reward_collect_radius").get<int>();
     Graph pathing_graph = calc_pathing_graph(vis_graph,points,5);
     Graph pruned_vis_graph = calc_pathing_graph(vis_graph,points,guard_linesight);
+    Graph pruned_rew_graph = calc_pathing_graph(vis_graph,points,reward_collect_rad);
     //WeightAllocs vis_graph_binmaps = graph_to_binmap(vis_graph);
     std::cout << pathing_graph.size() << "\n";
     compete_paths(
         pathing_graph,
         pruned_vis_graph,
+        pruned_rew_graph,
         reward_vals,//TODO:
         agent_idx,
-        guard_idx
+        guard_idx,
+        env_fname
     );
     //std::cout << points.size() << "\n";
     //std::cout << points[0].x << "\n";

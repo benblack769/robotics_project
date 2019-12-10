@@ -1,11 +1,11 @@
 {
     "map_fname": "enviornments/many_guards.svg.json",
     "adjacency_list": "enviornments/many_guards.graph.json",
-    "agent_weightmap": "wm_img_dir/many_guards_agent.weightmap.npy",
-    "guard_weightmap": "wm_img_dir/many_guards_guard.weightmap.npy",
+    "agent_weightmap": "wm_img_dir/many_guards_agent.weightmap.json",
+    "guard_weightmap": "wm_img_dir/many_guards_guard.weightmap.json",
     "agent_linesight": 100,
     "guard_linesight": 100,
-    "reward_collect_radius": 5,
+    "reward_collect_radius": 20,
     "guard_locations": [387,346],
-    "agent_location": [181,340]
+    "agent_location": [81,340]
 }
