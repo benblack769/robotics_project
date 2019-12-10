@@ -3,23 +3,21 @@ from coord_math import *
 
 class Follower:
     NEEDS_EXPLORING_DATA = False
-    def __init__(self,path,start_coord):
+    def __init__(self,path,start_coord,fixed_time_step=False):
         self.path = path
         init_path_idx = closest(path,start_coord)
         self.coord = start_coord
         self.next_point = init_path_idx
+        self.fixed_time_step = fixed_time_step
 
     def move(self):
         next_coord = self.path[self.next_point]
-        while distc(next_coord,self.coord) < 3:
-            self.next_point = (self.next_point+1)%len(self.path)
-            next_coord = self.path[self.next_point]
+        self.next_point = (self.next_point+1)%len(self.path)
+        # while distc(next_coord,self.coord) < 1.2:
+        #     self.next_point = (self.next_point+1)%len(self.path)
+        #     next_coord = self.path[self.next_point]
 
-        trajectories = get_rays((0,0),19,1.0)
-        best_dir = trajectories[closest(trajectories,sub(next_coord,self.coord))]
-        print(best_dir)
-        print(self.coord)
-        return best_dir
+        return coord_math.sub(next_coord,self.coord)
 
     def get_coord(self):
         return self.coord

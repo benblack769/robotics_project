@@ -166,16 +166,16 @@ def main():
     agent_weightmap = np.load((env_values.agent_weightmap))
     guard_weightmap = np.load((env_values.guard_weightmap))
 
-    print(map_info.blocker_polygons)
+    #print(map_info.blocker_polygons)
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
     start_coord = env_values.agent_location
     path_points = sample_path_points(visibilty_info,start_coord,agent_weightmap)
     guard_path_points = sample_path_points(visibilty_info,env_values.guard_locations,guard_weightmap)
-    print(path_points)
-    agent = Follower(path_points,start_coord)
-    guards = [Follower(guard_path_points,env_values.guard_locations) ]
+    #print(path_points)
+    agent = Follower(path_points,start_coord,True)
+    guards = [Follower(guard_path_points,env_values.guard_locations,True) ]
     enviornment = EnviornmentCoordinator(libvis,env_values,agent,guards,map_info.reward_points)
 
     pygame.init()
@@ -220,7 +220,7 @@ def main():
 
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
-            print("point: ",agent_point)
+            #print("point: ",agent_point)
             pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
             poly = libvis.get_visibilily_polygon(agent_point)
             renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
@@ -243,7 +243,7 @@ def main():
 
         if not args.no_display:
             pygame.display.flip()
-        SAMPLE_RATE = 3
+        SAMPLE_RATE = 1
         if args.produce_video and frame_count % SAMPLE_RATE == 0:
             pygame.image.save(screen, img_dir+"data{0:05d}.png".format(frame_count//SAMPLE_RATE))
         frame_count += 1

@@ -40,8 +40,8 @@ class EnviornmentCoordinator:
         for mover in self.movers:
             move_dir = mover.move()
             move_dist = coord_math.distc((0,0),move_dir)
-            if move_dist > 1.0:
-                move_dir = coord_math.scalar_mul(move_dir,1.0/move_dist)
+            #if move_dist > 1.0:
+            #    move_dir = coord_math.scalar_mul(move_dir,1.0/move_dist)
             #print(move_dir)
             src_coord = mover.get_coord()
             dest_coord = coord_math.add(src_coord,move_dir)
