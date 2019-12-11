@@ -59,11 +59,19 @@ def renderSight(screen,map_info,poly,cen,radius,color):
 
     screen.blit(poly_screen, (0,0))
 
-def renderPath(screen,point_targets):
+def renderPossiblePaths(map_info,point_targets,color):
+    path_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+    for targs in point_targets:
+        path_other = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+        renderPath(path_other,targs,color)
+        path_screen.blit(path_other,(0,0))
+    return path_screen
+
+def renderPath(screen,point_targets,color=(255,255,0)):
     if point_targets:
         prevp = point_targets[0]
         for nextp in point_targets[1:]:
-            pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
+            pygame.draw.line(screen,color,(prevp),nextp,2)
             prevp = nextp
 
 def intify(coord):
@@ -142,6 +150,10 @@ def sample_path_points(visibilty_info, start_coord,path_mixture):
     #path_points = [graph_points[x] for x in path_targets]
     return res
 
+def to_point_paths(visibilty_info,paths):
+    plist = visibilty_info['points']
+    return [[plist[p] for p in path] for path in paths]
+
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
@@ -169,7 +181,11 @@ def main():
     agent_weightmap = json.load(open(env_values.agent_weightmap))
     guard_weightmap = json.load(open(env_values.guard_weightmap))
 
+    #agent_screen_out = renderPossiblePaths(map_info,to_point_paths(visibilty_info,agent_weightmap),(0,255,0,4))
+    #guard_screen_out = renderPossiblePaths(map_info,to_point_paths(visibilty_info,guard_weightmap),(0,0,255,4))
     #print(map_info.blocker_polygons)
+    #pygame.image.save(agent_screen_out,"guard_density_maps.png")
+    #pygame.image.save(guard_screen_out,"agent_density_maps.png")
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
@@ -206,8 +222,13 @@ def main():
         if frame_count > 500:
             running = False
 
+        time.sleep(0.05)
+
         # Fill the background with white
         screen.fill((255, 255, 255))
+
+        #screen.blit(guard_screen_out, (0,0))
+        #screen.blit(agent_screen_out, (0,0))
 
         renderPolys(screen,map_info.blocker_polygons)
         # Draw a solid blue circle in the center
