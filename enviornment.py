@@ -1,9 +1,10 @@
 import coord_math
+import random
 
 
 def find_block_intersect(libvis,source,dest):
-    if coord_math.distc(source,dest) < 3:
-        return dest
+    if coord_math.distc(source,dest) < 2:
+        return source
     midpoint = coord_math.midpoint(source,dest)
 
     if not libvis.can_see(source,midpoint):
@@ -40,15 +41,19 @@ class EnviornmentCoordinator:
         # move movers
         for mover in self.movers:
             move_dir = mover.move()
-            move_dist = coord_math.distc((0,0),move_dir)
-            if move_dist > 1.0:
-                move_dir = coord_math.scalar_mul(move_dir,1.0/move_dist)
-            #print(move_dir)
-            src_coord = mover.get_coord()
-            dest_coord = coord_math.add(src_coord,move_dir)
-            if not self.libvis.can_see(src_coord,dest_coord):
-                print("mover at {} tried to move though wall!".format(src_coord))
-                #exit(0)
+            while True:
+                move_dist = coord_math.distc((0,0),move_dir)
+                if move_dist > 1.0:
+                    move_dir = coord_math.scalar_mul(move_dir,1.0/move_dist)
+                #print(move_dir)
+                src_coord = mover.get_coord()
+                dest_coord = coord_math.add(src_coord,move_dir)
+                if not self.libvis.can_see(src_coord,dest_coord):
+                    print("mover at {} tried to move though wall!".format(src_coord))
+                    move_dir = (random.random()*2,random.random()*2)
+                    #exit(0)
+                else:
+                    break
             mover.moved(move_dir)
 
         # check if agent is found by guard
