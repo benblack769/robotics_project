@@ -50,8 +50,9 @@ class EnviornmentCoordinator:
                 dest_coord = coord_math.add(src_coord,move_dir)
                 if not self.libvis.can_see(src_coord,dest_coord):
                     print("mover at {} tried to move though wall!".format(src_coord))
-                    move_dir = (random.random()*2,random.random()*2)
+                    #move_dir = (random.random()*2,random.random()*2)
                     #exit(0)
+                    break
                 else:
                     break
             mover.moved(move_dir)

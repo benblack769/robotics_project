@@ -16,6 +16,7 @@ from struct_ import Struct
 from gtsp import GTSP,get_path
 from exploring_agent import AgentDecisionMaker
 import exploring_agent
+from dynamic_agent_strategy import DynamicAgent
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -183,7 +184,7 @@ def main():
                 if plist[i] in pointweights:
                     pass
     #agent = Follower(path_points,start_coord)
-    agent = AgentDecisionMaker(start_coord,env_values)
+    agent = DynamicAgent(start_coord,env_values,libvis,map_info.reward_points)
     guards = [Follower(map_info.guard_dests,guard_loc) for guard_loc in env_values.guard_locations]
     enviornment = EnviornmentCoordinator(libvis,env_values,agent,guards,map_info.reward_points)
 
@@ -242,9 +243,9 @@ def main():
             renderRewards(screen,enviornment.reward_points())
             #renderSight(screen,map_info,poly)
 
-            draw_exploring_agent(screen,map_info,agent)
+            #draw_exploring_agent(screen,map_info,agent)
             #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
-            #renderPath(screen,visibilty_info,path_targets)
+            renderPath(screen,agent.current_path)
 
             #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 

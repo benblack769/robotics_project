@@ -73,6 +73,10 @@ class LibVisibility:
     def in_vispoly(self, vispoly, point):
         return point_to_vis(point)._in(vispoly)
 
+    def in_env(self,point):
+        p1 = point_to_vis(point)
+        return p1._in(self.environment)
+
     def can_see(self,p1,p2):
         p1 = point_to_vis(p1)
         p2 = point_to_vis(p2)
