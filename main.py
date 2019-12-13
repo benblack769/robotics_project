@@ -62,7 +62,7 @@ def renderPath(screen,visibilty_info,path_targets):
         point_targets = [visibilty_info["points"][t] for t in path_targets]
         prevp = point_targets[0]
         for nextp in point_targets[1:]:
-            pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
+            pygame.draw.line(screen,(0,0,255),(prevp),nextp,2)
             prevp = nextp
 
 def intify(coord):
@@ -181,9 +181,9 @@ def main():
         for agent_point in enviornment.agent_points():
             agent_color = (0, 0, 255)
             print("point: ",agent_point)
-            pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
-            poly = libvis.get_visibilily_polygon(agent_point)
-            renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
+            pygame.draw.circle(screen, agent_color, intify(agent_point), 10)
+            #poly = libvis.get_visibilily_polygon(agent_point)
+            #renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
 
         for guard_point in enviornment.guard_points():
             guard_color = (0, 255, 0)
