@@ -67,6 +67,27 @@ def renderPath(screen,point_targets):
             pygame.draw.line(screen,(255,255,0),(prevp),nextp,2)
             prevp = nextp
 
+def draw_dynamic_agent(screen,map_info,agent):
+    poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+    sight_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
+
+    # fill hidden with gray
+
+    cur_guard_sightings = agent.get_current_guard_sight()
+    for pos in cur_guard_sightings:
+        color = (255,0,0,128)
+        x,y = pos
+        poly_screen.fill(color,rect=(x,y,1,1))
+
+    for pos,count in agent.guard_sight_counts.items():
+        color = (255,0,0,2*count)
+        x,y = pos
+        sight_screen.fill(color,rect=(x,y,1,1))
+
+    screen.blit(poly_screen, (0,0))
+    screen.blit(sight_screen, (0,0))
+
+
 def draw_exploring_agent(screen,map_info,agent):
     poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
     poly_screen.set_alpha(128)
@@ -246,6 +267,7 @@ def main():
             #draw_exploring_agent(screen,map_info,agent)
             #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)
             renderPath(screen,agent.current_path)
+            draw_dynamic_agent(screen,map_info,agent)
 
             #pygame.draw.line(screen, (0, 0, 255), (250, 250),  (250, 0),3)
 

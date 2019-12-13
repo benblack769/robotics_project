@@ -28,7 +28,7 @@ def get_sight_locs(rad,cen,static_map):
     for rx,ry in coord_math.get_rays(cen,num_rays,rad):
         sight_coords = coord_math.raytrace2dgrid(ax,ay,rx,ry)
         for sx,sy in sight_coords:
-            if static_map[(sx,sy)] != STATIC_OPEN:
+            if static_map[disc((sx,sy))] != STATIC_OPEN:
                 break
             sight_locs.add((sx,sy))
 
@@ -104,7 +104,9 @@ class DynamicAgent:
             if time < 5:
                 new_guard_sight.append((time+1,point))
             if time == 0:
-                self.guard_sight_counts[point] += 1
+                print("found guard!!")
+                for spos in get_sight_locs(self.guard_linesight+5,point,self.static_map):
+                    self.guard_sight_counts[spos] += 1
 
         self.timed_guard_sight_posses = new_guard_sight
 
