@@ -3,7 +3,7 @@ import coord_math
 
 def find_block_intersect(libvis,source,dest):
     if coord_math.distc(source,dest) < 3:
-        return dest
+        return source
     midpoint = coord_math.midpoint(source,dest)
 
     if not libvis.can_see(source,midpoint):
