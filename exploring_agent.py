@@ -119,7 +119,8 @@ class AgentDecisionMaker:
             if time < 5:
                 new_guard_sight.append((time+1,point))
             if time == 0:
-                self.guard_sight_counts[point] += 1
+                for spos in get_sight_locs(self.guard_linesight+5,point,self.static_map):
+                    self.guard_sight_counts[spos] += 1
 
         self.timed_guard_sight_posses = new_guard_sight
 
