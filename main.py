@@ -86,6 +86,8 @@ def draw_exploring_agent(screen,map_info,agent):
                     color = (0,0,0,128)
                 elif (x,y) in should_travel:
                     color = (0,255,0,128)
+                elif (x,y) in agent.guard_sight_counts:
+                    color = (255,0,0,2*agent.guard_sight_counts[(x,y)])
                 elif val == exploring_agent.STATIC_OPEN:
                     color = (0,0,0,0)
                 else:
