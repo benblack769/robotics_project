@@ -9,8 +9,8 @@ from exploring_agent import PriorityQueue
 
 def disc(coord):
     x,y = coord
-    x = int(round((x-2)/5))*5+2
-    y = int(round((y-2)/5))*5+2
+    x = int(x)#int(round((x-2)/5))*5+2
+    y = int(y)#int(round((y-2)/5))*5+2
     return x,y
 
 STATIC_BLOCKED = "B"
@@ -19,7 +19,7 @@ STATIC_OPEN = "O"
 def sqr(x):
     return x * x
 
-COORDS_AROUND = ((-5,0),(5,0),(5,-5),(-5,-5),(5,5),(5,-5),(0,5),(0,-5))
+COORDS_AROUND = ((-1,0),(1,0),(1,-1),(-1,-1),(1,1),(1,-1),(0,1),(0,-1))
 
 def get_sight_locs(rad,cen,static_map):
     num_rays = int(rad*6)
@@ -62,7 +62,7 @@ def Dikstras(start,travel_cost_fn,static_map,should_travel):
                 break
 
             cx,cy = coord
-            for ux,uy in ((-5,0),(5,0),(5,-5),(-5,-5),(5,5),(5,-5),(0,5),(0,-5)):
+            for ux,uy in ((-1,0),(1,0),(1,-1),(-1,-1),(1,1),(1,-1),(0,1),(0,-1)):
                 newc = cx+ux,cy+uy
                 mag = coord_math.dist(0,0,ux,uy)
                 if newc not in visited_parents and newc in static_map and static_map[newc] == STATIC_OPEN:
