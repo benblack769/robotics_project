@@ -16,7 +16,6 @@ from struct_ import Struct
 from gtsp import GTSP,get_path
 import numpy as np
 import random
-from collections import Counter
 
 def renderPolys(screen,polys):
     black = (0,0,0)
@@ -25,10 +24,9 @@ def renderPolys(screen,polys):
         pygame.draw.polygon(screen,black,poly,3)
 
 def renderRewards(screen,rewards):
-    for (rx,ry),prob in rewards:
+    for rx,ry in rewards:
         irew = (int(rx),int(ry))
-        print( int(prob*255))
-        pygame.draw.circle(screen, (255, 0, 0, int(prob*255)), irew, 5)
+        pygame.draw.circle(screen, (255, 0, 0), irew, 5)
 
 def negative_circle(cen,map_info,radius):
     poly = []
@@ -44,10 +42,10 @@ def negative_circle(cen,map_info,radius):
 
 def renderSight(screen,map_info,poly,cen,radius,color):
     poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-    poly_screen.set_alpha(128)
+    #poly_screen.set_alpha(128)
 
     if poly:
-        pygame.draw.polygon(poly_screen,color+(128,),poly)
+        pygame.draw.polygon(poly_screen,color,poly)
 
     #pygame.draw.circle(poly_screen, color, cen, radius)
 
@@ -60,53 +58,6 @@ def renderSight(screen,map_info,poly,cen,radius,color):
     #pygame.draw.circle(poly_screen,blank, cen, radius)
 
     screen.blit(poly_screen, (0,0))
-
-def renderPossiblePaths(map_info,point_targets,color):
-    path_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-    for targs in point_targets:
-        path_other = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-        renderPath(path_other,targs,color)
-        path_screen.blit(path_other,(0,0))
-    return path_screen
-
-def renderPath(screen,point_targets,color=(255,255,0)):
-    if point_targets:
-        prevp = point_targets[0]
-        for nextp in point_targets[1:]:
-            pygame.draw.line(screen,color,(prevp),nextp,2)
-            prevp = nextp
-
-def intify(coord):
-    x,y = coord
-    return int(x),int(y)
-
-def discritize(width,height,space):
-    points = []
-    for x in range(space//2,width,space):
-        for y in range(space//2,height,space):
-            points.append((x,y))
-    return points
-
-def find_path_points(visibilty_info, gtsp,start, goals):
-    plist = visibilty_info["points"]
-    adj_list = visibilty_info["adj_list"]
-    counts = visibilty_info["counts"]
-    start_idx = coord_math.closest(plist,start)
-    goals_idxs = [coord_math.closest(plist,g) for g in goals]
-    ordering = get_path(gtsp,plist,adj_list,counts,start_idx,goals_idxs,5000000)
-    old_goal = start_idx
-    resulting_path = []
-    #print(ordering)
-    print("ordering")
-    print(ordering)
-    for new_goal_idx in ordering:
-        new_goal = goals_idxs[new_goal_idx]
-        new_path = dikstras(old_goal,counts,plist,adj_list,[new_goal])
-        resulting_path += new_path
-        old_goal = new_goal
-    #print(resulting_path)
-    return resulting_path
-
 
 
 def save_video(img_dir,out_name):
@@ -123,43 +74,15 @@ def save_video(img_dir,out_name):
     subprocess.call(ffmpeg_call)
     shutil.rmtree(img_dir)
 
-def draw_density_map(screen,map_info,weightmap,pointlist,index,color,radius):
-    accel_surface = pygame.Surface((map_info.width, map_info.height),pygame.SRCALPHA)#,pygame.RLEACCEL)
-    for i in range(len(weightmap)):
-        path_other = pygame.Surface((map_info.width, map_info.height),pygame.RLEACCEL)  # the size of your rect
-        path_other.set_alpha(2)
+def draw_density_map(screen,libvis,map_info,weightmap,pointlist,index,color,radius):
+    #accel_surface = pygame.Surface((map_info.width, map_info.height),pygame.SRCALPHA)#,pygame.RLEACCEL)
+    #screen.fill((255, 255, 255,0))
+    for i in range(20):#len(weightmap)):
         point = pointlist[weightmap[i][index]]
-        pygame.draw.circle(path_other, color, point, radius)
-        accel_surface.blit(path_other,(0,0))
-    screen.blit(accel_surface,(0,0))
+        poly = libvis.get_visibilily_polygon(point)
+        renderSight(screen,map_info,poly,point,radius,color)
+    #screen.blit(accel_surface,(0,0))
 
-
-def sample_path(start,weightmap,adj_list):
-    path = [start]
-    point = start
-    #print(point)
-    #proint()
-    for t in range(len(weightmap)):
-        vals = np.asarray(adj_list[point])
-        probs = np.asarray(weightmap[t][point][:len(vals)])
-        #print(len(vals))
-        #print(len(probs))
-        next_point = np.random.choice(a=vals,p=probs)
-        next_point = int(next_point)
-        path.append(next_point)
-        point = next_point
-    return path
-
-def sample_path_points(visibilty_info, start_coord,path_mixture):
-    plist = visibilty_info['points']
-    chosen_path = random.choice(path_mixture)
-    res = [plist[c] for c in chosen_path]
-    #start_idx = coord_math.closest(plist,start_coord)
-    #path_targets = find_path_points(visibilty_info,gtsp,start_coord,map_info.reward_points)
-    #path_targets = sample_path(start_idx,weightmap,visibilty_info["adj_list"])
-    #graph_points = visibilty_info['points']
-    #path_points = [graph_points[x] for x in path_targets]
-    return res
 
 def to_point_paths(visibilty_info,paths):
     plist = visibilty_info['points']
@@ -200,18 +123,6 @@ def main():
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
-    NUM_ENVS = 20
-    all_envs = []
-    for _ in range(NUM_ENVS):
-        start_coord = env_values.agent_location
-        path_points = sample_path_points(visibilty_info,start_coord,agent_weightmap)
-        guard_path_points = sample_path_points(visibilty_info,env_values.guard_locations,guard_weightmap)
-        #print(path_points)
-        agent = Follower(path_points,start_coord,True)
-        guards = [Follower(guard_path_points,env_values.guard_locations,True) ]
-        enviornment = EnviornmentCoordinator(libvis,env_values,agent,guards,map_info.reward_points)
-        all_envs.append(enviornment)
-
     pygame.init()
 
     if not args.no_display:
@@ -229,17 +140,13 @@ def main():
                 if event.type == pygame.QUIT:
                     running = False
 
-        new_all_envs = []
-        for env in all_envs:
-            env.step_move()
-            if not env.game_finished():
-                new_all_envs.append(env)
-        all_envs = new_all_envs
-        if len(all_envs) == 0:
-            break
+        #enviornment.step_move()
+        #if enviornment.game_finished():
+        #    print("result: {}".format(enviornment.game_result()))
+        #    running = False
 
         if frame_count > len(agent_weightmap[0]):
-            break
+            running = False
 
         time.sleep(0.05)
 
@@ -248,8 +155,12 @@ def main():
 
         #screen.blit(guard_screen_out, (0,0))
         #screen.blit(agent_screen_out, (0,0))
-        #draw_density_map(screen,map_info,agent_weightmap,visibilty_info['points'],frame_count,(0,0,255),10)
-        #draw_density_map(screen,map_info,agent_weightmap,visibilty_info['points'],frame_count,(0,255,0),env_values.guard_linesight)
+        #tmpscreen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)
+
+        #tmpscreen.fill((0, 0, 0,0))
+        draw_density_map(screen,libvis,map_info,guard_weightmap,visibilty_info['points'],frame_count,(0,255,0,16),env_values.guard_linesight)
+        draw_density_map(screen,libvis,map_info,agent_weightmap,visibilty_info['points'],frame_count,(0,0,255,16),10)
+        #screen.blit(tmpscreen,(0,0))
 
         renderPolys(screen,map_info.blocker_polygons)
         # Draw a solid blue circle in the center
@@ -263,25 +174,7 @@ def main():
         #     #print(value)
         #     pygame.draw.circle(screen, (0, 255, 0,128), point, int(value/(0.8*avg_value)))
 
-        for env in all_envs:
-            for agent_point in env.agent_points():
-                agent_color = (0, 0, 255)
-                #print("point: ",agent_point)
-                pygame.draw.circle(screen, agent_color, intify(agent_point), 10)
-                #poly = libvis.get_visibilily_polygon(agent_point)
-                #renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
-
-        for env in all_envs:
-            for guard_point in env.guard_points():
-                guard_color = (0, 255, 0)
-                pygame.draw.circle(screen, guard_color, intify(guard_point), 5)
-                poly = libvis.get_visibilily_polygon(guard_point)
-                renderSight(screen,map_info,poly,intify(guard_point),env_values.guard_linesight,guard_color)
-
-        rew_points = sum(([tuple(p) for p in env.reward_points()] for env in all_envs),[])
-        rew_point_counts = Counter(rew_points)
-        rew_point_probs = [(point,count/NUM_ENVS) for point,count in rew_point_counts.items()]
-        renderRewards(screen,rew_point_probs)
+        renderRewards(screen,map_info.reward_points)
         #renderSight(screen,map_info,poly)
 
         #path_targets = find_path_points(visibilty_info,gtsp,(count,count),map_info.reward_points)

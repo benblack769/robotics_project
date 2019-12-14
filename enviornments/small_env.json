@@ -1,0 +1,11 @@
+{
+    "map_fname": "enviornments/small_env.svg.json",
+    "adjacency_list": "enviornments/small_env.graph.json",
+    "agent_weightmap": "wm_img_dir/small_env_agent.weightmap.json",
+    "guard_weightmap": "wm_img_dir/small_env_guard.weightmap.json",
+    "agent_linesight": 100,
+    "guard_linesight": 100,
+    "reward_collect_radius": 5,
+    "guard_locations": [1,1],
+    "agent_location": [18,18]
+}

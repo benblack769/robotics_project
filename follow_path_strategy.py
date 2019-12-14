@@ -13,6 +13,9 @@ class Follower:
     def move(self):
         next_coord = self.path[self.next_point]
         self.next_point = (self.next_point+1)%len(self.path)
+        new_coord = self.path[self.next_point]
+        if coord_math.distc(next_coord,new_coord) > 5.01:
+            print("jumped!!!!!!!!!!!")
         # while distc(next_coord,self.coord) < 1.2:
         #     self.next_point = (self.next_point+1)%len(self.path)
         #     next_coord = self.path[self.next_point]
