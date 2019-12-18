@@ -229,19 +229,8 @@ def main():
                 if event.type == pygame.QUIT:
                     running = False
 
-        new_all_envs = []
-        for env in all_envs:
-            env.step_move()
-            if not env.game_finished():
-                new_all_envs.append(env)
-        all_envs = new_all_envs
-        if len(all_envs) == 0:
-            break
-
-        if frame_count > len(agent_weightmap[0]):
-            break
-
-        time.sleep(0.05)
+        if not args.no_display:
+            time.sleep(0.05)
 
         # Fill the background with white
         screen.fill((255, 255, 255))
@@ -299,6 +288,18 @@ def main():
         frame_count += 1
 
 
+        new_all_envs = []
+        for env in all_envs:
+            env.step_move()
+            if not env.game_finished():
+                new_all_envs.append(env)
+        all_envs = new_all_envs
+        if len(all_envs) == 0:
+            break
+
+        if frame_count > len(agent_weightmap[0]):
+            break
+            
     if args.produce_video:
         save_video(img_dir,video_name)
     # Done! Time to quit.
