@@ -192,6 +192,21 @@ def main():
     agent_weightmap = json.load(open(env_values.agent_weightmap))
     guard_weightmap = json.load(open(env_values.guard_weightmap))
 
+    plist = visibilty_info['points']
+    start_coord = env_values.guard_locations
+    start_idx = coord_math.closest(plist,start_coord)
+    for path in agent_weightmap:
+        cur_idx = start_idx
+        for idx in path:
+            if coord_math.cdist(plist[idx],plist[cur_idx]) > 5.001:
+                print("failed assert")
+                print(plist[idx])
+                print(plist[cur_idx])
+                print(idx)
+                print(cur_idx)
+                exit(0)
+            cur_idx = idx
+
     #agent_screen_out = renderPossiblePaths(map_info,to_point_paths(visibilty_info,agent_weightmap),(0,255,0,4))
     #guard_screen_out = renderPossiblePaths(map_info,to_point_paths(visibilty_info,guard_weightmap),(0,0,255,4))
     #print(map_info.blocker_polygons)
@@ -299,7 +314,7 @@ def main():
 
         if frame_count > len(agent_weightmap[0]):
             break
-            
+
     if args.produce_video:
         save_video(img_dir,video_name)
     # Done! Time to quit.

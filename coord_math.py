@@ -10,6 +10,9 @@ def sqr(x):
 def dist(x1,y1,x2,y2):
     return math.sqrt(sqr(x1-x2)+sqr(y1-y2))
 
+def cdist(p1,p2):
+    return dist(*p1,*p2)
+
 def distc(p1,p2):
     return dist(*p1,*p2)
 

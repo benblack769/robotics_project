@@ -12,7 +12,7 @@
 
 using json = nlohmann::json;
 struct Point{
-    int x,y;
+    int x=0,y=0;
 };
 using PointList = std::vector<Point>;
 using EdgeList = std::vector<uint32_t>;
@@ -51,7 +51,7 @@ struct PathReward{
 using PathRewards = std::vector<PathReward>;
 constexpr int NUM_PATHS = 200;
 using PathCollection = std::vector<Path>;
-bool validate_path(const Path & path,const PointList& points);
+bool validate_path(const Path & path,const PointList& points,size_t start_loc);
 namespace std{
     template<>
     struct hash<PtrPair>{
@@ -82,7 +82,7 @@ Graph calc_pathing_graph(Graph & full_graph,std::vector<Point> & points,int targ
         Point source = points[n];
         for(size_t e : full_graph[n]){
             Point dest = points[e];
-            if(dist(source,dest) < target_dist+0.01){
+            if(dist(source,dest) <= target_dist){
                 small_graph[n].push_back(e);
             }
         }
@@ -297,10 +297,12 @@ bool mutate_path(Path & path,Graph & move_graph,PointList & points,MoveDistMap &
         generate_path(path,path_length,start_gen,move_graph);
         assert(path.dest_markers.size() > 1);
         assert(path.travel_points.size() == path_length);
-        assert(validate_path(path,points));
+        assert(validate_path(path,points,start_loc));
         return true;
     }
     else{
+        size_t elim_end_path = rand()%(path.dest_markers.size()/4+1);
+        path.dest_markers.erase(path.dest_markers.end()-elim_end_path,path.dest_markers.end());
         //erase from middle of path
         size_t start_erase = std::max(size_t(1),rand()%(path.dest_markers.size()));
         size_t end_erase = start_erase+rand()%(path.dest_markers.size()-start_erase);
@@ -345,7 +347,7 @@ bool mutate_path(Path & path,Graph & move_graph,PointList & points,MoveDistMap &
                         }
                     }
                 //}
-                assert(validate_path(path,points));
+                assert(validate_path(path,points,start_loc));
                 assert(path.dest_markers.size() > 1);
                 assert(path.travel_points.size() == path_length);
                 return true;
@@ -368,11 +370,11 @@ int count_age(PathRewards & paths){
     }
     return sum;
 }
-bool validate_path(const Path & path,const PointList& points){
+bool validate_path(const Path & path,const PointList& points,size_t start_loc){
     if(path.travel_points.size() == 0){
         return true;
     }
-    Point prevp = points[path.travel_points[0]];
+    Point prevp = points[start_loc];
     for(uint32_t n : path.travel_points){
         Point newp = points[n];
         if(dist(prevp,newp) > 5){
@@ -382,9 +384,9 @@ bool validate_path(const Path & path,const PointList& points){
     }
     return true;
 }
-bool validate_paths(const PathCollection & paths,const PointList& points){
+bool validate_paths(const PathCollection & paths,const PointList& points,size_t start_loc){
     for(const Path & path : paths){
-        if(!validate_path(path,points)){
+        if(!validate_path(path,points,start_loc)){
             return false;
         }
     }
@@ -431,7 +433,7 @@ PathSubset find_best(PathRewards & rewards,size_t res_size){
     }
     return res;
 }
-void save_paths(PathCollection & paths,std::string filename){
+void save_paths(PathCollection & paths,std::vector<Point> & plist,std::string filename){
     std::vector<std::vector<uint32_t>> ppaths;
     for(Path & p : paths){
         ppaths.push_back(p.travel_points);
@@ -451,8 +453,8 @@ void compete_paths(Graph & move_graph,
                    size_t guard_start,
                    size_t theif_start,
                     std::string name){
-    const size_t PATH_LENGTH = 500;
-    const size_t NUM_PATHS = 2000;
+    const size_t PATH_LENGTH = 300;
+    const size_t NUM_PATHS = 1000;
     const size_t NUM_ITERS = 10000000;
     const size_t ADD_PATHS = 20;
     PathCollection guard_paths(NUM_PATHS,Path{});
@@ -497,8 +499,8 @@ void compete_paths(Graph & move_graph,
                 add(guard_rewards[g],thief_rewards[t],eval);
             }
         }
-        assert(validate_paths(guard_paths,points));
-        assert(validate_paths(theif_paths,points));
+        assert(validate_paths(guard_paths,points,guard_start));
+        assert(validate_paths(theif_paths,points,theif_start));
         std::cout << "evaluated" << std::endl;
         PathSubset best_guards = find_best(guard_rewards,NUM_PATHS);
         PathSubset best_thiefs = find_best(thief_rewards,NUM_PATHS);
@@ -532,8 +534,8 @@ void compete_paths(Graph & move_graph,
             std::cout << "saved\n";
             std::string agent_fpath = "wm_img_dir/"+name+"_agent.weightmap.json."+std::to_string(save_count);
             std::string guard_fpath = "wm_img_dir/"+name+"_guard.weightmap.json."+std::to_string(save_count);
-            save_paths(guard_paths,guard_fpath);
-            save_paths(theif_paths,agent_fpath);
+            save_paths(guard_paths,points,guard_fpath);
+            save_paths(theif_paths,points,agent_fpath);
             save_count++;
         }
         //std::cout << double(cur_time)/ tot_time << "\n";

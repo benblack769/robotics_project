@@ -5,9 +5,9 @@ class Follower:
     NEEDS_EXPLORING_DATA = False
     def __init__(self,path,start_coord,fixed_time_step=False):
         self.path = path
-        init_path_idx = closest(path,start_coord)
+        #init_path_idx = closest(path,start_coord)
         self.coord = start_coord
-        self.next_point = init_path_idx
+        self.next_point = 0
         self.fixed_time_step = fixed_time_step
 
     def move(self):
@@ -20,7 +20,7 @@ class Follower:
         #     self.next_point = (self.next_point+1)%len(self.path)
         #     next_coord = self.path[self.next_point]
 
-        return coord_math.sub(next_coord,self.coord)
+        return coord_math.sub(new_coord,self.coord)
 
     def get_coord(self):
         return self.coord
