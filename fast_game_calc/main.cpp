@@ -599,6 +599,11 @@ void compete_paths(ConstantGameInfo & gi,
     std::vector<PointRewards> theif_point_rewards;
     add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
 
+    std::string report_fname = "wm_img_dir/"+name+"_report.csv";
+    std::ofstream report_file(report_fname);
+    report_file << "guard_rew" << "," << "thief_rew" << ','
+             << "guard_report_reward" << "," << "thief_report_reward" << std::endl;
+
     for(size_t g = 0; g < guard_paths.size(); g++){
         for(size_t t = 0; t < theif_paths.size(); t++){
             ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
@@ -655,14 +660,18 @@ void compete_paths(ConstantGameInfo & gi,
 
         //elim_pathcollection(guard_paths,NUM_PATHS);
         //elim_pathcollection(theif_paths,NUM_PATHS);
-        std::cout << count_rewards(guard_rewards)/double(count_age(guard_rewards)) << "  "
-                    << count_rewards(thief_rewards)/double(count_age(thief_rewards)) << "\n";
-        if(i % 25 == 0){
+        double guard_report_reward = count_rewards(guard_rewards)/double(count_age(guard_rewards));
+        double thief_report_reward = count_rewards(thief_rewards)/double(count_age(thief_rewards));
+        std::cout << guard_report_reward << "  "
+                    << thief_report_reward << "\n";
+        if(i % 125 == 0){
             double guard_rew = total_reward(guard_paths,guard_rewards,theif_paths,gi,best_guard_response);
             double thief_rew = total_reward(theif_paths,thief_rewards,guard_paths,gi,best_thief_response);
             std::cout << "estimated guard reward: "<< guard_rew << std::endl;
             std::cout << "estimated thief reward: "<< thief_rew << std::endl;
-        }
+            report_file << guard_rew << "," << thief_rew << ','
+                     << guard_report_reward << "," << thief_report_reward << std::endl;
+         }
         if(i == (1 << save_count)*8){
             std::cout << "saved\n";
             std::string agent_fpath = "wm_img_dir/"+name+"_agent.weightmap.json."+std::to_string(save_count);
