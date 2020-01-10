@@ -9,3 +9,4 @@ fast_game_calc/game_calc
 *.vscode
 qt_proj
 build-*
+*.user
