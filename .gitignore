@@ -10,3 +10,4 @@ fast_game_calc/game_calc
 qt_proj
 build-*
 *.user
+*img_dir
