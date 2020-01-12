@@ -420,6 +420,7 @@ PathSubset find_best(PathRewards & rewards,size_t res_size){
             return val > sv.val;
         }
     };
+    res_size = std::min(res_size,rewards.size());
     int tot_rew = count_rewards(rewards);
     int reward_noise = tot_rew / 10;
     std::vector<SortVal> sortl(rewards.size());
@@ -473,22 +474,32 @@ void best_guard_response(PathCollection & old_guard_paths,
     keep_indexes(guard_paths,best_old_guards);
     keep_indexes(guard_rewards,best_old_guards);
 
-     std::vector<PointRewards> theif_point_rewards;
-     add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
-     const size_t ADD_PATHS = 50;
-     PathReward dummy_thief_rew;
+    PathReward dummy_thief_rew;
+    std::vector<PointRewards> theif_point_rewards;
+    add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
+    if(guard_paths.size() < NUM_PATHS){
+        add_paths(guard_paths,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - guard_paths.size(),gi.guard_start);
+        guard_rewards.resize(NUM_PATHS);
+
+        for(size_t g = old_guard_paths.size(); g < NUM_PATHS; g++){
+            for(size_t t = 0; t < theif_paths.size(); t++){
+                ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
+                add(guard_rewards[g],dummy_thief_rew,eval);
+            }
+        }
+    }
+     const size_t ADD_PATHS = 5;
      for(size_t i = 0; i < NUM_ITERS; i++){
          //evaluate theif rewards
          add_paths(guard_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.guard_start);
          guard_rewards.resize(NUM_PATHS+ADD_PATHS);
-         #pragma omp parallel for schedule(static)
          for(size_t g = NUM_PATHS; g < NUM_PATHS+ADD_PATHS; g++){
              for(size_t t = 0; t < theif_paths.size(); t++){
                  ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
                  add(guard_rewards[g],dummy_thief_rew,eval);
              }
          }
-         assert(validate_paths(guard_paths,gi.points,gi.guard_start));
+         //assert(validate_paths(guard_paths,gi.points,gi.guard_start));
          PathSubset best_guards = find_best(guard_rewards,NUM_PATHS);
 
          keep_indexes(guard_paths,best_guards);
@@ -521,26 +532,38 @@ void best_thief_response(PathCollection & old_thief_paths,
     keep_indexes(thief_paths,best_old_thiefs);
     keep_indexes(thief_rewards,best_old_thiefs);
 
-     std::vector<PointRewards> theif_point_rewards;
-     const size_t ADD_PATHS = 50;
-     PathReward dummy_thief_rew;
+    PathReward dummy_guard_rew;
+    std::vector<PointRewards> theif_point_rewards;
+    if(thief_paths.size() < NUM_PATHS){
+        add_paths(thief_paths,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - thief_paths.size(),gi.thief_start);
+        add_theif_rewards(theif_point_rewards,thief_paths,gi.reward_points,gi.dense_rew_graph);
+        thief_rewards.resize(NUM_PATHS);
+
+        for(size_t t = old_thief_paths.size(); t < NUM_PATHS; t++){
+            for(size_t g = 0; g < guard_paths.size(); g++){
+                ValPair eval = evaluate_rewards(guard_paths[g],thief_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
+                add(dummy_guard_rew,thief_rewards[t],eval);
+            }
+        }
+    }
+     const size_t ADD_PATHS = 5;
      for(size_t i = 0; i < NUM_ITERS; i++){
          //evaluate theif rewards
          add_paths(thief_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.thief_start);
          add_theif_rewards(theif_point_rewards,thief_paths,gi.reward_points,gi.dense_rew_graph);
          thief_rewards.resize(NUM_PATHS+ADD_PATHS);
-         #pragma omp parallel for schedule(static)
          for(size_t t = NUM_PATHS; t < NUM_PATHS+ADD_PATHS; t++){
              for(size_t g = 0; g < guard_paths.size(); g++){
                  ValPair eval = evaluate_rewards(guard_paths[g],thief_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
-                 add(dummy_thief_rew,thief_rewards[t],eval);
+                 add(dummy_guard_rew,thief_rewards[t],eval);
              }
          }
-         assert(validate_paths(thief_paths,gi.points,gi.thief_start));
-         PathSubset best_guards = find_best(thief_rewards,NUM_PATHS);
+         //assert(validate_paths(thief_paths,gi.points,gi.thief_start));
+         PathSubset best_thiefs = find_best(thief_rewards,NUM_PATHS);
 
-         keep_indexes(thief_paths,best_guards);
-         keep_indexes(thief_rewards,best_guards);
+         keep_indexes(thief_paths,best_thiefs);
+         keep_indexes(thief_rewards,best_thiefs);
+         keep_indexes(theif_point_rewards,best_thiefs);
          for(size_t t = 0; t < thief_paths.size(); t++){
              assert(thief_rewards[t].age == guard_paths.size());
          }
@@ -559,8 +582,8 @@ double total_reward(PathCollection & guard_paths,
                  ConstantGameInfo & gi,
                  fnty fn){
 
-    const size_t NUM_RESPONSE_ITERS = 1000;
-    const size_t NUM_RESPONSE_PATHS = 500;
+    const size_t NUM_RESPONSE_ITERS = 6000;
+    const size_t NUM_RESPONSE_PATHS = 2000;
     const size_t NUM_RETS = 10;
     PathCollection guard_responses;
     PathRewards guard_response_rews;
@@ -585,9 +608,9 @@ double total_reward(PathCollection & guard_paths,
 void compete_paths(ConstantGameInfo & gi,
                     std::string name){
     const size_t PATH_LENGTH = 400;
-    const size_t NUM_PATHS = 2000;
+    const size_t NUM_PATHS = 500;
     const size_t NUM_ITERS = 10000000;
-    const size_t ADD_PATHS = 10;
+    const size_t ADD_PATHS = 5;
     PathCollection guard_paths(NUM_PATHS,Path{});
     PathCollection theif_paths(NUM_PATHS,Path{});
     PathRewards guard_rewards(NUM_PATHS,PathReward{});
@@ -613,8 +636,8 @@ void compete_paths(ConstantGameInfo & gi,
     for(size_t i = 0; i < NUM_ITERS; i++){
         //evaluate theif rewards
 
-        const size_t NUM_RESPONSE_ITERS = 50;
-        const size_t NUM_RESPONSE_PATHS = 200;
+        const size_t NUM_RESPONSE_ITERS = 150;
+        const size_t NUM_RESPONSE_PATHS = 500;
         PathCollection guard_responses;
         PathRewards guard_response_rews;
         best_guard_response(

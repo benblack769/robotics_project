@@ -44,7 +44,7 @@ def negative_circle(cen,map_info,radius):
 
 def renderSight(screen,map_info,poly,cen,radius,color):
     poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-    poly_screen.set_alpha(128)
+    poly_screen.set_alpha(32)
 
     if poly:
         pygame.draw.polygon(poly_screen,color+(128,),poly)
@@ -193,7 +193,7 @@ def main():
     guard_weightmap = json.load(open(env_values.guard_weightmap))
 
     plist = visibilty_info['points']
-    start_coord = env_values.guard_locations
+    start_coord = env_values.agent_location
     start_idx = coord_math.closest(plist,start_coord)
     for path in agent_weightmap:
         cur_idx = start_idx
@@ -215,12 +215,12 @@ def main():
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
-    NUM_ENVS = 20
+    NUM_ENVS = 40
     all_envs = []
     for _ in range(NUM_ENVS):
-        start_coord = env_values.agent_location
+        start_coord = env_values.guard_locations
         path_points = sample_path_points(visibilty_info,start_coord,agent_weightmap)
-        guard_path_points = sample_path_points(visibilty_info,env_values.guard_locations,guard_weightmap)
+        guard_path_points = sample_path_points(visibilty_info,env_values.agent_location,guard_weightmap)
         #print(path_points)
         agent = Follower(path_points,start_coord,True)
         guards = [Follower(guard_path_points,env_values.guard_locations,True) ]
@@ -271,7 +271,9 @@ def main():
             for agent_point in env.agent_points():
                 agent_color = (0, 0, 255)
                 #print("point: ",agent_point)
-                pygame.draw.circle(screen, agent_color, intify(agent_point), 10)
+                pygame.draw.circle(screen, agent_color, intify(agent_point), 5)
+                poly = libvis.get_visibilily_polygon(agent_point)
+                renderSight(screen,map_info,poly,intify(agent_point),env_values.reward_collect_radius,agent_color)
                 #poly = libvis.get_visibilily_polygon(agent_point)
                 #renderSight(screen,map_info,poly,intify(agent_point),env_values.agent_linesight,agent_color)
 
