@@ -546,7 +546,7 @@ void best_thief_response(const PathCollection & old_thief_paths,
     //initialize guard paths with current best mixture for faster convergence
     PathCollection thief_paths = old_thief_paths;
     PathRewards thief_rewards = old_thief_rewards;
-    if(thief_paths.size() < NUM_PATHS){
+    if(thief_paths.size() > NUM_PATHS){
         PathSubset best_old_thiefs = find_best(old_thief_rewards,NUM_PATHS);
         keep_indexes(thief_paths,best_old_thiefs);
         keep_indexes(thief_rewards,best_old_thiefs);
@@ -659,7 +659,7 @@ double total_reward(PathCollection & guard_paths,
 void compete_paths(ConstantGameInfo & gi,
                     std::string name){
     const size_t PATH_LENGTH = 400;
-    const size_t NUM_PATHS = 150;
+    const size_t NUM_PATHS = 450;
     const size_t NUM_ITERS = 10000000;
     const size_t ADD_PATHS = 1;
     PathCollection guard_paths(NUM_PATHS,Path{});
@@ -676,7 +676,7 @@ void compete_paths(ConstantGameInfo & gi,
 
     std::string report_fname = "wm_img_dir/"+name+"_report.csv";
     std::ofstream report_file(report_fname);
-    report_file << "row_idx,num_updates,guard_rew,thief_rew,guard_report_reward,thief_report_reward" << std::endl;
+    report_file << "row_idx,num_updates,guard_rew,thief_rew,guard_add_response,thief_add_response,guard_report_reward,thief_report_reward" << std::endl;
 
     for(size_t g = 0; g < guard_paths.size(); g++){
         for(size_t t = 0; t < theif_paths.size(); t++){
@@ -687,8 +687,8 @@ void compete_paths(ConstantGameInfo & gi,
     for(size_t i = 0; i < NUM_ITERS; i++){
         //evaluate theif rewards
 
-        const size_t NUM_RESPONSE_ITERS = 200;
-        const size_t NUM_RESPONSE_PATHS = NUM_PATHS;
+        const size_t NUM_RESPONSE_ITERS = 400;
+        const size_t NUM_RESPONSE_PATHS = 100;
         const size_t PAR_RESPONSES = std::max(size_t(4),numHWThreads);
         PathCollection guard_responses;
         PathRewards guard_response_rews;
@@ -705,6 +705,30 @@ void compete_paths(ConstantGameInfo & gi,
                     guard_response_rews,
                     best_guard_response
                     );
+        guard_paths.insert(guard_paths.end(),guard_responses.begin(),guard_responses.end());
+        guard_rewards.resize(NUM_PATHS+ADD_PATHS);
+
+        for(size_t g = NUM_PATHS; g < NUM_PATHS+ADD_PATHS; g++){
+            for(size_t t = 0; t < NUM_PATHS; t++){
+                ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
+                add(guard_rewards[g],thief_rewards[t],eval);
+            }
+        }
+        assert(validate_paths(guard_paths,gi.points,gi.guard_start));
+
+        PathSubset best_guards = find_best(guard_rewards,NUM_PATHS);
+
+        for(size_t g = 0; g < guard_paths.size(); g++){
+            if(!best_guards[g]){
+            for(size_t t = 0; t < theif_paths.size(); t++){
+                    ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
+                    sub(guard_rewards[g],thief_rewards[t],eval);
+                }
+            }
+        }
+        keep_indexes(guard_paths,best_guards);
+        keep_indexes(guard_rewards,best_guards);
+
 
         PathCollection thief_responses;
         PathRewards thief_response_rews;
@@ -721,11 +745,8 @@ void compete_paths(ConstantGameInfo & gi,
                     thief_response_rews,
                     best_thief_response
                     );
-        guard_paths.insert(guard_paths.end(),guard_responses.begin(),guard_responses.end());
         theif_paths.insert(theif_paths.end(),thief_responses.begin(),thief_responses.end());
-        //add_paths(guard_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.guard_start);
-        //add_paths(theif_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.thief_start);
-        guard_rewards.resize(NUM_PATHS+ADD_PATHS);
+
         thief_rewards.resize(NUM_PATHS+ADD_PATHS);
         add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
         //clear_rewards(guard_paths);
@@ -736,30 +757,20 @@ void compete_paths(ConstantGameInfo & gi,
                 add(guard_rewards[g],thief_rewards[t],eval);
             }
         }
-        for(size_t g = NUM_PATHS; g < NUM_PATHS+ADD_PATHS; g++){
-            for(size_t t = 0; t < NUM_PATHS; t++){
-                ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
-                add(guard_rewards[g],thief_rewards[t],eval);
-            }
-        }
-        assert(validate_paths(guard_paths,gi.points,gi.guard_start));
         assert(validate_paths(theif_paths,gi.points,gi.thief_start));
 
-        PathSubset best_guards = find_best(guard_rewards,NUM_PATHS);
         PathSubset best_thiefs = find_best(thief_rewards,NUM_PATHS);
 
         for(size_t t = 0; t < theif_paths.size(); t++){
-            for(size_t g = 0; g < guard_paths.size(); g++){
-                if(!best_guards[g] || !best_thiefs[t]){
+            if(!best_thiefs[t]){
+              for(size_t g = 0; g < guard_paths.size(); g++){
                     ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
                     sub(guard_rewards[g],thief_rewards[t],eval);
                 }
             }
         }
 
-        keep_indexes(guard_paths,best_guards);
         keep_indexes(theif_paths,best_thiefs);
-        keep_indexes(guard_rewards,best_guards);
         keep_indexes(thief_rewards,best_thiefs);
         keep_indexes(theif_point_rewards,best_thiefs);
         for(size_t t = 0; t < theif_paths.size(); t++){
@@ -773,8 +784,12 @@ void compete_paths(ConstantGameInfo & gi,
         //elim_pathcollection(theif_paths,NUM_PATHS);
         double guard_cur_reward = count_rewards(guard_rewards)/double(count_age(guard_rewards));
         double thief_cur_reward = count_rewards(thief_rewards)/double(count_age(thief_rewards));
+        double guard_response_rew = count_rewards(guard_response_rews)/double(count_age(guard_response_rews));
+        double thief_response_rew = count_rewards(thief_response_rews)/double(count_age(thief_response_rews));
         std::cout << guard_cur_reward << "  "
-                    << thief_cur_reward << "\n";
+                    << thief_cur_reward << "     "
+                    << guard_response_rew << "  "
+                     << thief_response_rew <<  std::endl;
 
         if(i == size_t(pow(double(save_count+1),1.5)*16)){
             std::cout << "saved started" << std::endl;
@@ -788,7 +803,8 @@ void compete_paths(ConstantGameInfo & gi,
             std::cout << "estimated thief reward: "<< thief_rew << std::endl;
             size_t num_updates = i * ADD_PATHS;
             report_file << save_count << ',' << num_updates << ','
-                    << guard_cur_reward << "," << thief_cur_reward << ','
+                        << guard_cur_reward << "," << thief_cur_reward << ','
+                        << guard_response_rew << "," << thief_response_rew << ','
                      << guard_rew << "," << thief_rew << std::endl;
              std::cout << "saved ended" << std::endl;
 

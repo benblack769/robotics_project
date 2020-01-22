@@ -170,6 +170,7 @@ def main():
     parser.add_argument('json_fname', type=str, help='enviornment json file')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
     parser.add_argument('-D', '--no_display', action='store_true',help="disables drawing to screen")
+    parser.add_argument('-N', '--display_num', action='store_true',help="disables drawing to screen")
     args = parser.parse_args()
     print(args.no_display)
 
