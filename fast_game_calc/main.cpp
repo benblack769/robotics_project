@@ -8,9 +8,11 @@
 #include <unordered_set>
 #include <ctime>
 #include <thread>
+#include <random>
+#include <omp.h>
 #include "json.hpp"
 
-const size_t numHWThreads = std::thread::hardware_concurrency();
+size_t numHWThreads = std::thread::hardware_concurrency();
 
 using json = nlohmann::json;
 struct Point{
@@ -34,13 +36,15 @@ struct PtrPair{
         return v1 == o.v1 && v2 == o.v2;
     }
 };
-/*
+
 using randgen = std::default_random_engine;
 int rand_int(randgen & gen, int maxsize){
     std::uniform_int_distribution<int> distribution(0,maxsize-1);
     return distribution(gen);
 }
-*/
+int rand(randgen & gen){
+    return rand_int(gen,1<<30);
+}
 struct Path{
     std::vector<uint32_t> travel_points;
     std::vector<uint32_t> dest_markers;
@@ -51,7 +55,7 @@ struct PathReward{
     int age=0;
 };
 using PathRewards = std::vector<PathReward>;
-constexpr int NUM_PATHS = 200;
+//constexpr int NUM_PATHS = 200;
 using PathCollection = std::vector<Path>;
 bool validate_path(const Path & path,const PointList& points,size_t start_loc);
 namespace std{
@@ -186,11 +190,11 @@ void bfs(const Graph & move_graph,size_t start,size_t end,EdgeList & travel_poin
     }
     travel_points.insert(travel_points.end(),new_edges.begin(),new_edges.end());
 }
-void generate_path(Path & path,size_t path_length,size_t src_point,const Graph & move_graph){
+void generate_path(Path & path,randgen & gen,size_t path_length,size_t src_point,const Graph & move_graph){
     size_t graph_size = move_graph.size();
     size_t cur_point = src_point;
     while(path_length > path.travel_points.size()){
-        size_t rand_point = rand()%graph_size;
+        size_t rand_point = rand(gen)%graph_size;
         bfs(move_graph,cur_point,rand_point,path.travel_points,path_length-path.travel_points.size());
         if(path.travel_points.size()){
             path.dest_markers.push_back(path.travel_points.back());
@@ -199,10 +203,10 @@ void generate_path(Path & path,size_t path_length,size_t src_point,const Graph &
     }
     assert(path.dest_markers.size() > 1);
 }
-void generate_paths(PathCollection & paths,size_t path_length,const Graph & move_graph,size_t src_point){
+void generate_paths(PathCollection & paths,randgen & gen,size_t path_length,const Graph & move_graph,size_t src_point){
     for(Path & path : paths){
         path.dest_markers = std::vector<uint32_t>();
-        generate_path(path,path_length,src_point,move_graph);
+        generate_path(path,gen,path_length,src_point,move_graph);
     }
 }
 DenseGraph compute_vispairs(Graph & graph){
@@ -233,6 +237,10 @@ PointRewards evaluate_theif_rewards(const Path & thief,EdgeList rewards,const De
     }
     return t_rew;
 }
+PathRewards rand_rewards(){
+
+}
+
 void add_theif_rewards(std::vector<PointRewards> &cur_rewards,const PathCollection & theif_paths,EdgeList reward_points,const DenseGraph & vis_graph){
     for(size_t i = cur_rewards.size(); i < theif_paths.size(); i++){
         cur_rewards.push_back(evaluate_theif_rewards(theif_paths[i],reward_points,vis_graph));
@@ -287,30 +295,30 @@ uint32_t compute_length(const EdgeList & path,const MoveDistMap & dist_map){
     }
     return dist;
 }
-bool mutate_path(Path & path,const Graph & move_graph,const PointList & points,const MoveDistMap & dist_map,size_t start_loc){
+bool mutate_path(Path & path,randgen & gen,const Graph & move_graph,const PointList & points,const MoveDistMap & dist_map,size_t start_loc){
     size_t path_length = path.travel_points.size();
     size_t graph_size = move_graph.size();
-    if(rand()%3 == 0){
+    if(rand(gen)%3 == 0){
         //erase from end of path
-        size_t elim_end_path = std::max(int(0),rand()%((int)path.dest_markers.size())-1);
+        size_t elim_end_path = std::max(int(0),rand(gen)%((int)path.dest_markers.size())-1);
         path.dest_markers.erase(path.dest_markers.begin()+elim_end_path,path.dest_markers.end());
         path.travel_points.clear();
         regen_path(path.travel_points,path.dest_markers,start_loc,move_graph);
         size_t start_gen = path.travel_points.size() ? path.travel_points.back() : start_loc;
-        generate_path(path,path_length,start_gen,move_graph);
+        generate_path(path,gen,path_length,start_gen,move_graph);
         assert(path.dest_markers.size() > 1);
         assert(path.travel_points.size() == path_length);
         assert(validate_path(path,points,start_loc));
         return true;
     }
     else{
-        size_t elim_end_path = rand()%(path.dest_markers.size()/4+1);
+        size_t elim_end_path = rand(gen)%(path.dest_markers.size()/4+1);
         path.dest_markers.erase(path.dest_markers.end()-elim_end_path,path.dest_markers.end());
         //erase from middle of path
-        size_t start_erase = std::max(size_t(1),rand()%(path.dest_markers.size()));
-        size_t end_erase = start_erase+rand()%(path.dest_markers.size()-start_erase);
+        size_t start_erase = std::max(size_t(1),rand(gen)%(path.dest_markers.size()));
+        size_t end_erase = start_erase+rand(gen)%(path.dest_markers.size()-start_erase);
 
-        size_t replace_size = 1+rand()%(5+(end_erase - start_erase));
+        size_t replace_size = 1+rand(gen)%(5+(end_erase - start_erase));
 
         EdgeList start_path(path.dest_markers.begin(),path.dest_markers.begin()+start_erase);
         EdgeList end_path(path.dest_markers.begin()+end_erase,path.dest_markers.end());
@@ -323,7 +331,7 @@ bool mutate_path(Path & path,const Graph & move_graph,const PointList & points,c
             EdgeList middle_path(replace_size);
             size_t dist_middle = 0;
             for(size_t i = 0; i < replace_size; i++){
-                middle_path[i] = rand()%graph_size;
+                middle_path[i] = rand(gen)%graph_size;
                 if(i > 0){
                     dist_middle += dist_map[middle_path[i-1]][middle_path[i]];
                 }
@@ -338,7 +346,7 @@ bool mutate_path(Path & path,const Graph & move_graph,const PointList & points,c
 
                 path.travel_points.clear();
                 regen_path(path.travel_points,path.dest_markers,start_loc,move_graph);
-                generate_path(path,path_length,path.travel_points.back(),move_graph);
+                generate_path(path,gen,path_length,path.travel_points.back(),move_graph);
                 //if(!validate_path(path,points)){
                     std::vector<Point> path_points;
                     for(uint32_t tp : path.travel_points){
@@ -395,12 +403,12 @@ bool validate_paths(const PathCollection & paths,const PointList& points,size_t 
     }
     return true;
 }
-void add_paths(PathCollection & paths,const Graph & move_graph,const PointList & points,
+void add_paths(PathCollection & paths,randgen & gen,const Graph & move_graph,const PointList & points,
                const MoveDistMap & dist_map,int num_to_add,int start_loc){
     size_t path_len = paths.size();
     for(int i = 0; i < num_to_add; i++){
-        Path new_path = paths[rand()%path_len];
-        while(!mutate_path(new_path,move_graph,points,dist_map,start_loc));
+        Path new_path = paths[rand(gen)%path_len];
+        while(!mutate_path(new_path,gen,move_graph,points,dist_map,start_loc));
         paths.push_back(new_path);
     }
 }
@@ -463,11 +471,18 @@ struct ConstantGameInfo{
     size_t guard_start;
     size_t thief_start;
 };
-
+PathSubset random_subset(randgen & gen,size_t max,size_t count){
+    PathSubset res(count);
+    for(size_t i = 0; i < count; i++){
+        res[i] = rand_int(gen,max);
+    }
+    return res;
+}
 using response_fn_ty = void (const PathCollection &,
                          const PathRewards &,
                      const PathCollection &,
                      const ConstantGameInfo &,
+                    randgen &,
                      size_t,
                      size_t,
                      size_t,
@@ -477,6 +492,7 @@ void best_guard_response(const PathCollection & old_guard_paths,
                          const PathRewards & old_guard_rewards,
                      const PathCollection & theif_paths,
                      const ConstantGameInfo & gi,
+                     randgen & gen,
                      size_t NUM_PATHS,
                      size_t NUM_ITERS,
                      size_t RET_SIZE,
@@ -487,7 +503,7 @@ void best_guard_response(const PathCollection & old_guard_paths,
     PathCollection guard_paths = old_guard_paths;
     PathRewards guard_rewards = old_guard_rewards;
     if(guard_paths.size() > NUM_PATHS){
-        PathSubset best_old_guards = find_best(guard_rewards,NUM_PATHS);
+        PathSubset best_old_guards = random_subset(gen,old_guard_paths.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
         keep_indexes(guard_paths,best_old_guards);
         keep_indexes(guard_rewards,best_old_guards);
     }
@@ -496,7 +512,7 @@ void best_guard_response(const PathCollection & old_guard_paths,
     std::vector<PointRewards> theif_point_rewards;
     add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
     if(guard_paths.size() < NUM_PATHS){
-        add_paths(guard_paths,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - guard_paths.size(),gi.guard_start);
+        add_paths(guard_paths,gen,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - guard_paths.size(),gi.guard_start);
         guard_rewards.resize(NUM_PATHS);
 
         for(size_t g = old_guard_paths.size(); g < NUM_PATHS; g++){
@@ -509,7 +525,7 @@ void best_guard_response(const PathCollection & old_guard_paths,
      const size_t ADD_PATHS = 5;
      for(size_t i = 0; i < NUM_ITERS; i++){
          //evaluate theif rewards
-         add_paths(guard_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.guard_start);
+         add_paths(guard_paths,gen,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.guard_start);
          guard_rewards.resize(NUM_PATHS+ADD_PATHS);
          for(size_t g = NUM_PATHS; g < NUM_PATHS+ADD_PATHS; g++){
              for(size_t t = 0; t < theif_paths.size(); t++){
@@ -532,11 +548,11 @@ void best_guard_response(const PathCollection & old_guard_paths,
      keep_indexes(new_guard_paths,best_new_guards);
      keep_indexes(new_guard_rewards,best_new_guards);
 }
-
 void best_thief_response(const PathCollection & old_thief_paths,
                          const PathRewards & old_thief_rewards,
                      const PathCollection & guard_paths,
                      const ConstantGameInfo & gi,
+                     randgen & gen,
                      size_t NUM_PATHS,
                      size_t NUM_ITERS,
                      size_t RET_SIZE,
@@ -547,7 +563,8 @@ void best_thief_response(const PathCollection & old_thief_paths,
     PathCollection thief_paths = old_thief_paths;
     PathRewards thief_rewards = old_thief_rewards;
     if(thief_paths.size() > NUM_PATHS){
-        PathSubset best_old_thiefs = find_best(old_thief_rewards,NUM_PATHS);
+        PathSubset best_old_thiefs = random_subset(gen,old_thief_rewards.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
+        //PathSubset best_old_thiefs = find_best(old_thief_rewards,NUM_PATHS);
         keep_indexes(thief_paths,best_old_thiefs);
         keep_indexes(thief_rewards,best_old_thiefs);
     }
@@ -555,7 +572,7 @@ void best_thief_response(const PathCollection & old_thief_paths,
     PathReward dummy_guard_rew;
     std::vector<PointRewards> theif_point_rewards;
     if(thief_paths.size() < NUM_PATHS){
-        add_paths(thief_paths,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - thief_paths.size(),gi.thief_start);
+        add_paths(thief_paths,gen,gi.move_graph,gi.points,gi.dist_maps,NUM_PATHS - thief_paths.size(),gi.thief_start);
         add_theif_rewards(theif_point_rewards,thief_paths,gi.reward_points,gi.dense_rew_graph);
         thief_rewards.resize(NUM_PATHS);
 
@@ -569,7 +586,7 @@ void best_thief_response(const PathCollection & old_thief_paths,
      const size_t ADD_PATHS = 5;
      for(size_t i = 0; i < NUM_ITERS; i++){
          //evaluate theif rewards
-         add_paths(thief_paths,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.thief_start);
+         add_paths(thief_paths,gen,gi.move_graph,gi.points,gi.dist_maps,ADD_PATHS,gi.thief_start);
          add_theif_rewards(theif_point_rewards,thief_paths,gi.reward_points,gi.dense_rew_graph);
          thief_rewards.resize(NUM_PATHS+ADD_PATHS);
          for(size_t t = NUM_PATHS; t < NUM_PATHS+ADD_PATHS; t++){
@@ -605,15 +622,23 @@ void parallel_response_fn(PathCollection & old_paths,
                       PathCollection & new_paths,
                       PathRewards & new_rewards,
                       response_fn_ty fn){
+    std::random_device true_rand;
+    std::vector<randgen> gen;
+    for(size_t i = 0; i < numHWThreads; i++){
+        gen.emplace_back(true_rand());
+    }
     new_paths.clear();
     new_rewards.clear();
     PathCollection & all_paths = new_paths;
     PathRewards & all_rewards = new_rewards;
-    #pragma omp parallel for
+
+    #pragma omp parallel for num_threads(numHWThreads)
     for(size_t i = 0; i < num_par_execs; i++){
+        int tid = omp_get_thread_num();
+        randgen & thisgen = gen.at(tid);
         PathCollection response;
         PathRewards rewards;
-        fn(old_paths,old_rewards,guard_paths,gi,NUM_PATHS,NUM_ITERS,RET_SIZE,response,rewards);
+        fn(old_paths,old_rewards,guard_paths,gi,thisgen,NUM_PATHS,NUM_ITERS,RET_SIZE,response,rewards);
 #pragma omp critical
         all_paths.insert(all_paths.end(),response.begin(),response.end());
         all_rewards.insert(all_rewards.end(),rewards.begin(),rewards.end());
@@ -658,78 +683,45 @@ double total_reward(PathCollection & guard_paths,
 
 void compete_paths(ConstantGameInfo & gi,
                     std::string name){
+
+    std::random_device true_rand;
+    randgen gen(true_rand());
+
     const size_t PATH_LENGTH = 400;
-    const size_t NUM_PATHS = 450;
+    //const size_t NUM_PATHS = 450;
+    const size_t NUM_START_PATHS = 4;
     const size_t NUM_ITERS = 10000000;
     const size_t ADD_PATHS = 1;
-    PathCollection guard_paths(NUM_PATHS,Path{});
-    PathCollection theif_paths(NUM_PATHS,Path{});
-    PathRewards guard_rewards(NUM_PATHS,PathReward{});
-    PathRewards thief_rewards(NUM_PATHS,PathReward{});
+    PathCollection guard_paths(NUM_START_PATHS,Path{});
+    PathCollection theif_paths(NUM_START_PATHS,Path{});
+    PathRewards guard_rewards(NUM_START_PATHS,PathReward{});
+    PathRewards thief_rewards(NUM_START_PATHS,PathReward{});
     std::cout << "initted1" << std::endl;
-    generate_paths(guard_paths,PATH_LENGTH,gi.move_graph,gi.guard_start);
-    generate_paths(theif_paths,PATH_LENGTH,gi.move_graph,gi.thief_start);
     std::cout << "initted2" << std::endl;
     int save_count = 0;
     std::vector<PointRewards> theif_point_rewards;
+
+    generate_paths(guard_paths,gen,PATH_LENGTH,gi.move_graph,gi.guard_start);
+    generate_paths(theif_paths,gen,PATH_LENGTH,gi.move_graph,gi.thief_start);
     add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
-
-    std::string report_fname = "wm_img_dir/"+name+"_report.csv";
-    std::ofstream report_file(report_fname);
-    report_file << "row_idx,num_updates,guard_rew,thief_rew,guard_add_response,thief_add_response,guard_report_reward,thief_report_reward" << std::endl;
-
     for(size_t g = 0; g < guard_paths.size(); g++){
         for(size_t t = 0; t < theif_paths.size(); t++){
             ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
             add(guard_rewards[g],thief_rewards[t],eval);
         }
     }
+
+
+    std::string report_fname = "wm_img_dir/"+name+"_report.csv";
+    std::ofstream report_file(report_fname);
+    report_file << "row_idx,num_updates,guard_rew,thief_rew,guard_add_response,thief_add_response,guard_report_reward,thief_report_reward" << std::endl;
+
     for(size_t i = 0; i < NUM_ITERS; i++){
         //evaluate theif rewards
 
-        const size_t NUM_RESPONSE_ITERS = 400;
-        const size_t NUM_RESPONSE_PATHS = 100;
-        const size_t PAR_RESPONSES = std::max(size_t(4),numHWThreads);
-        PathCollection guard_responses;
-        PathRewards guard_response_rews;
-        parallel_response_fn(
-                    guard_paths,
-                    guard_rewards,
-                    theif_paths,
-                    gi,
-                    NUM_RESPONSE_PATHS,
-                    NUM_RESPONSE_ITERS,
-                    ADD_PATHS,
-                    PAR_RESPONSES,
-                    guard_responses,
-                    guard_response_rews,
-                    best_guard_response
-                    );
-        guard_paths.insert(guard_paths.end(),guard_responses.begin(),guard_responses.end());
-        guard_rewards.resize(NUM_PATHS+ADD_PATHS);
-
-        for(size_t g = NUM_PATHS; g < NUM_PATHS+ADD_PATHS; g++){
-            for(size_t t = 0; t < NUM_PATHS; t++){
-                ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
-                add(guard_rewards[g],thief_rewards[t],eval);
-            }
-        }
-        assert(validate_paths(guard_paths,gi.points,gi.guard_start));
-
-        PathSubset best_guards = find_best(guard_rewards,NUM_PATHS);
-
-        for(size_t g = 0; g < guard_paths.size(); g++){
-            if(!best_guards[g]){
-            for(size_t t = 0; t < theif_paths.size(); t++){
-                    ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
-                    sub(guard_rewards[g],thief_rewards[t],eval);
-                }
-            }
-        }
-        keep_indexes(guard_paths,best_guards);
-        keep_indexes(guard_rewards,best_guards);
-
-
+        const size_t PAR_RESPONSES = numHWThreads;
+        const size_t NUM_RESPONSE_PATHS = 400/PAR_RESPONSES;
+        const size_t NUM_RESPONSE_ITERS = 4*NUM_RESPONSE_PATHS;
         PathCollection thief_responses;
         PathRewards thief_response_rews;
         parallel_response_fn(
@@ -747,11 +739,10 @@ void compete_paths(ConstantGameInfo & gi,
                     );
         theif_paths.insert(theif_paths.end(),thief_responses.begin(),thief_responses.end());
 
-        thief_rewards.resize(NUM_PATHS+ADD_PATHS);
+        thief_rewards.resize(theif_paths.size());
         add_theif_rewards(theif_point_rewards,theif_paths,gi.reward_points,gi.dense_rew_graph);
-        //clear_rewards(guard_paths);
-        //clear_rewards(theif_paths);
-        for(size_t t = NUM_PATHS; t < NUM_PATHS+ADD_PATHS; t++){
+
+        for(size_t t = theif_paths.size()-ADD_PATHS; t < theif_paths.size(); t++){
             for(size_t g = 0; g < guard_paths.size(); g++){
                 ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
                 add(guard_rewards[g],thief_rewards[t],eval);
@@ -759,20 +750,35 @@ void compete_paths(ConstantGameInfo & gi,
         }
         assert(validate_paths(theif_paths,gi.points,gi.thief_start));
 
-        PathSubset best_thiefs = find_best(thief_rewards,NUM_PATHS);
 
-        for(size_t t = 0; t < theif_paths.size(); t++){
-            if(!best_thiefs[t]){
-              for(size_t g = 0; g < guard_paths.size(); g++){
-                    ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
-                    sub(guard_rewards[g],thief_rewards[t],eval);
-                }
+
+        PathCollection guard_responses;
+        PathRewards guard_response_rews;
+        parallel_response_fn(
+                    guard_paths,
+                    guard_rewards,
+                    theif_paths,
+                    gi,
+                    NUM_RESPONSE_PATHS,
+                    NUM_RESPONSE_ITERS,
+                    ADD_PATHS,
+                    PAR_RESPONSES,
+                    guard_responses,
+                    guard_response_rews,
+                    best_guard_response
+                    );
+        guard_paths.insert(guard_paths.end(),guard_responses.begin(),guard_responses.end());
+        guard_rewards.resize(guard_paths.size());
+
+        for(size_t g = guard_paths.size()-ADD_PATHS; g < guard_paths.size(); g++){
+            for(size_t t = 0; t < theif_paths.size(); t++){
+                ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
+                add(guard_rewards[g],thief_rewards[t],eval);
             }
         }
+        assert(validate_paths(guard_paths,gi.points,gi.guard_start));
 
-        keep_indexes(theif_paths,best_thiefs);
-        keep_indexes(thief_rewards,best_thiefs);
-        keep_indexes(theif_point_rewards,best_thiefs);
+
         for(size_t t = 0; t < theif_paths.size(); t++){
             assert(thief_rewards[t].age == int(guard_paths.size()));
         }
@@ -780,8 +786,6 @@ void compete_paths(ConstantGameInfo & gi,
             assert(guard_rewards[g].age == int(theif_paths.size()));
         }
 
-        //elim_pathcollection(guard_paths,NUM_PATHS);
-        //elim_pathcollection(theif_paths,NUM_PATHS);
         double guard_cur_reward = count_rewards(guard_rewards)/double(count_age(guard_rewards));
         double thief_cur_reward = count_rewards(thief_rewards)/double(count_age(thief_rewards));
         double guard_response_rew = count_rewards(guard_response_rews)/double(count_age(guard_response_rews));
