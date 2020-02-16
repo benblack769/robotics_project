@@ -22,6 +22,7 @@ if __name__ == "__main__":
     plt.plot('x', 'thief_report_reward',data=data, marker='o', markerfacecolor='red', markersize=4, color='red', linewidth=2)
     plt.legend()
 
-    plt.show()
+    #plt.show()
+    plt.savefig(args.csv_fname+".png")
 
 #guard_rew,thief_rew,guard_report_reward,thief_report_reward

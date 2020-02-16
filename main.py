@@ -205,7 +205,8 @@ def main():
                 print(plist[cur_idx])
                 print(idx)
                 print(cur_idx)
-                exit(0)
+                #exit(0)
+                break
             cur_idx = idx
 
     #agent_screen_out = renderPossiblePaths(map_info,to_point_paths(visibilty_info,agent_weightmap),(0,255,0,4))
