@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import numpy as np
 import random
+import copy
+import nashpy
 
 class RPCChoice:
     def __init__(self,intval):
@@ -14,7 +16,7 @@ class RPCChoice:
     def random_choice():
         return RPCChoice(random.randrange(3))
     def random_alt(self):
-        self.feature = random.randrange(3)
+        return RPCChoice(random.randrange(3))
 
 class DiskChoice:
     def __init__(self,featurevec):
@@ -27,10 +29,11 @@ class DiskChoice:
         return DiskChoice(np.array([x,y]))
     def random_alt(self):
         ALT_DIST = 0.1
-        self.feature += np.random.uniform(size=2)*ALT_DIST
-        mag = np.sum(np.square(self.feature))
+        new_feature = self.feature + np.random.uniform(size=2)*ALT_DIST
+        mag = np.sum(np.square(new_feature))
         if mag > 1:
-            self.feature /= mag
+            new_feature /= mag
+        return DiskChoice(new_feature)
 
 class CombChoice:
     def __init__(self,num_choices):
@@ -40,7 +43,8 @@ class CombChoice:
         return CombChoice(np.random.randint(0,1+1,size=self.num_choices))
     def random_alt(self):
         idx_flip = np.random.randint(0,self.num_choices)
-        self.feature[idx_flip] = 1-self.feature[idx_flip]
+        new_feature = np.copy(self.feature)
+        new_feature[idx_flip] = 1-new_feature[idx_flip]
 
 class RPC_CombChoice:
     def __init__(self,comb,rpc):
@@ -51,9 +55,9 @@ class RPC_CombChoice:
         return RPC_CombChoice(CombChoice(num_choices),RPCChoice())
     def random_alt(self):
         if random.random() < 1./(self.num_choices+1):
-            self.rpc.random_alt()
+            return RPC_CombChoice(self.comb,self.rpc.random_alt())
         else:
-            self.comb.random_alt()
+            return RPC_CombChoice(self.comb.random_alt(),self.rpc)
 
 class CombObjective:
     def __init__(self,num_combs):
@@ -71,6 +75,7 @@ class RPCObjective:
         diffmod3 = (choicep1.feature - choicep2.feature)%3
         return diffmod3 if diffmod3 <= 1 else -1
     def optimal_response(self,choice,player):
+        player = player*2-1
         return (choice.feature+player)%3
     # def optimal_response_p1(self,choicep2):
     #     return (choicep2.feature+1)%3
@@ -83,6 +88,8 @@ class RPCCombObjective:
         self.comb_objectives = [CombObjective(num_combs) for _ in range(3)]
         self.rpc = RPCObjective()
         self.mul_val = mul_val
+    def random_choice(self,player):
+        return RPC_CombChoice.random_choice(self.num_combs)
     def evaluate(self,choicep1,choicep2):
         valp1 = self.comb_objectives[choicep1.rpc.feature].evaluate(choicep1.comb)
         valp2 = self.comb_objectives[choicep1.rpc.feature].evaluate(choicep2.comb)
@@ -93,6 +100,8 @@ class RPCCombObjective:
         match_choie = self.comb_objectives[rpc_choice.feature].optimal_response()
         new_choice = RPC_CombChoice(match_choice,rpc_choice)
         return new_choice
+    def cyclic_responses(self):
+        return [RPC_CombChoice(self.comb_objectives[i],RPCChoice(i)) for i in range(3)]
     # def optimal_response_p1(self,choicep1):
     #     rpc_choice = self.rpc.optimal_response_p1(choicep1)
     #     match_choie = self.comb_objectives[rpc_choice.feature].optimal_response()
@@ -105,83 +114,82 @@ class RPCCombObjective:
     #     return new_choice
 
 class NashChoiceMixture:
-    def __init__(self,player1_choices,player2_choices,objective):
-        pass
-    def sample_player1(self):
-        pass
-    def sample_player2(self):
+    def __init__(self,objective):
+        self.player_strategies = [[],[]]
+        self.objective_matrix = np.zeros((0,0))
+        self.objective = objective
+
+    def add_player_choice(self,player,strategy):
+        self.player_strategies[player].append(strategy)
+        other_player = player^1
+
+        new_objective_row = []
+        for other_strat in self.player_strategies[other_player]:
+            strats = [None]*2
+            strats[player] = strategy
+            strats[other_player] = other_strat
+            evaluation = self.objective(strats)
+            new_objective_row.append(evaluation)
+        self.objective_matrix = np.concatenate([self.objective_matrix,new_objective_row],axis=player)
+
+    def sample_player_opponents(self,player,sample_size):
+        matching_pennies = nash.Game(self.objective_matrix)
+        equilibria = matching_pennies.support_enumeration()
+        print(equilibria)
+        strategy_support = equilibria[player]
+        choices = random.choices(self.player_strategies[player],weights=strategy_support,k=sample_size)
+        return choices
+
 
 class UniformChoiceMixture:
     def __init__(self):
-        self.choices = []
-    def add(self,choice):
-        self.choices.append(choice)
-    def sample(self):
-        return random.choice(self.choices)
+        self.player_strategies = [[],[]]
+    def add_player_choice(self,player,strategy):
+        self.player_strategies[player].append(strategy)
+    def sample_player_opponents(self,player,sample_size):
+        return random.choices(self.player_strategies[player],k=sample_size)
 
-def local_search_objective(choice_mixture,)
+def evaluate_on_player(obj,c1,c2,player):
+    if player > 0:
+        p1,p2 = p2,p1
+    return obj.evaluate(c1,c2)
 
-def direction_score(x1,x2):
-    return direction_matrix[x1][x2]
+def local_search_strategy(choice_mixture,objective,starter_strat,player,sample_size,num_local_searches):
+    results = []
+    opponent_list = choice_mixture.sample_player_opponents(player,sample_size)
 
-class Game:
-    def __init__(self,num_combs,num_additive,opposition_val):
-        self.num_combs = num_combs
-        self.num_additive = num_additive
-        self.opposition_val = opposition_val
-        self.target_value = np.random.randint(0,num_combs,size=(3,num_additive))
+    for _ in range(num_local_searches):
+        cur_strat = starter_strat.random_alt()
+        total_evaluation = sum((evaluate_on_player(objective,cur_strat,opponent_strat,player)
+                                for opponent_strat in opponent_list))
 
-    def permute_choice(self,orig_choice):
-        type_val = random.random()
-        new_choice = np.copy(orig_choice)
-        if type_val < 1./3.:
-            new_choice[0] = random.randrange(3)
-        else:
-            idx = random.randrange(self.num_additive)
-            new_choice[idx+1] = random.randrange(self.num_combs)
-        return new_choice
+        results.append((total_evaluation,cur_strat))
+    best_strat = max(results,key=lambda x: x[0])[1]
+    return best_strat
 
-    def sample_choice(self):
-        return  np.concatenate([
-            np.random.randint(0,3,size=(1,)),
-            np.random.randint(0,self.num_combs,size=self.num_additive),
-        ])
 
-    def calc_outcome(self,player_one_choice,player_two_choice):
-        '''
-        return: -1 for player one losing, 0 for draw, 1 for player one winning
-        '''
-        p1_choice = player_one_choice[0]
-        p2_choice = player_two_choice[0]
-        direct_score = direction_score(p1_choice,p2_choice)
-        add_val1 = np.sum(np.equal(player_one_choice[1:],self.target_value[p1_choice]).astype(np.float32))
-        add_val2 = np.sum(np.equal(player_two_choice[1:],self.target_value[p2_choice]).astype(np.float32))
-        result_score = direct_score * self.opposition_val + add_val1 - add_val2
-        result_outcome = 0 if result_score == 0 else (-1 if result_score < 0 else 1)
-        return result_outcome, result_score
+def global_search_strategy(choice_mixture,objective,starter_strat,player,sample_size):
+    results = []
+    opponent_list = choice_mixture.sample_player_opponents(player,sample_size)
 
-    def optimal_response(self,mixture,player):
-        outcomes = np.zeros((3,),dtype=np.int32)
-        opt_responses = np.concatenate([np.arange(3).reshape(3,1),self.target_value],axis=1)
-        for sidx in range(3):
-            score = 0
-            cur_response = opt_responses[sidx]
-            outcome,_ = self.response_value(cur_response,mixture,player)
-            outcomes[sidx] = outcome
+    for cur_strat in objective.cyclic_responses():
+        total_evaluation = sum((evaluate_on_player(objective,cur_strat,opponent_strat,player)
+                                for opponent_strat in opponent_list))
 
-        best_bin = np.argmax(outcomes)
-        response = np.concatenate([np.array([best_bin]),self.target_value[best_bin]])
-        return response
+        results.append((total_evaluation,cur_strat))
+    best_strat = max(results,key=lambda x: x[0])[1]
+    return best_strat
 
-    def response_value(self,strat,mixture,player):
-        total_score = 0
-        total_record = 0
-        for m in mixture:
-            record,score = self.calc_outcome(strat,m)
-            total_score += score*player
-            total_record += record*player
-        return total_record/len(mixture),total_score/len(mixture)
-
+def run_game(choice_mixture,objective):
+    latest_strats = []
+    for p in range(2):
+        rand_stratp1 = objective.random_choice(p)
+        choice_mixture.add_player_choice(p,rand_stratp1)
+        latest_strats.append(rand_stratp1)
+    for i in range(100):
+        for p in range(2):
+            local_search_strategy(choice_mixture,objective,
+            choice_mixture.add_player_choice(p,chosen_strat)
 
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
