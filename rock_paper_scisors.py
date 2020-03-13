@@ -77,10 +77,6 @@ class RPCObjective:
     def optimal_response(self,choice,player):
         player = player*2-1
         return (choice.feature+player)%3
-    # def optimal_response_p1(self,choicep2):
-    #     return (choicep2.feature+1)%3
-    # def optimal_response_p2(self,choicep1):
-    #     return (choicep1.feature-1)%3
 
 class RPCCombObjective:
     def __init__(self,num_combs,mul_val):
@@ -102,16 +98,7 @@ class RPCCombObjective:
         return new_choice
     def cyclic_responses(self):
         return [RPC_CombChoice(self.comb_objectives[i],RPCChoice(i)) for i in range(3)]
-    # def optimal_response_p1(self,choicep1):
-    #     rpc_choice = self.rpc.optimal_response_p1(choicep1)
-    #     match_choie = self.comb_objectives[rpc_choice.feature].optimal_response()
-    #     new_choice = RPC_CombChoice(match_choice,rpc_choice)
-    #     return new_choice
-    # def optimal_response_p2(self,choicep1):
-    #     rpc_choice = self.rpc.optimal_response_p2(choicep1)
-    #     match_choie = self.comb_objectives[rpc_choice.feature].optimal_response()
-    #     new_choice = RPC_CombChoice(match_choice,rpc_choice)
-    #     return new_choice
+
 
 class NashChoiceMixture:
     def __init__(self,objective):
@@ -166,7 +153,6 @@ def local_search_strategy(choice_mixture,objective,starter_strat,player,sample_s
         results.append((total_evaluation,cur_strat))
     best_strat = max(results,key=lambda x: x[0])[1]
     return best_strat
-
 
 def global_search_strategy(choice_mixture,objective,starter_strat,player,sample_size):
     results = []

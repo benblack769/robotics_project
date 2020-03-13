@@ -748,15 +748,15 @@ void compete_paths(ConstantGameInfo & gi,
         //evaluate theif rewards
 
         const size_t PAR_RESPONSES = numHWThreads;
-        const size_t NUM_RESPONSE_PATHS = 60000/PAR_RESPONSES;
-        const size_t NUM_RESPONSE_ITERS = 1;
+        const size_t NUM_RESPONSE_PATHS = 1000/PAR_RESPONSES;
+        const size_t NUM_RESPONSE_ITERS = 7*NUM_RESPONSE_PATHS;
         PathCollection thief_responses;
         PathRewards thief_response_rews;
         PathCollection theif_start;
         PathRewards theif_rew_start;
-        if(iter_n > 200){
-            //theif_start = theif_paths;
-            //theif_rew_start = thief_rewards;
+        if(iter_n > 0){
+            theif_start = theif_paths;
+            theif_rew_start = thief_rewards;
         }
         parallel_response_fn(
                     theif_start,
@@ -790,9 +790,9 @@ void compete_paths(ConstantGameInfo & gi,
         PathRewards guard_response_rews;
         PathCollection guard_start;
         PathRewards guard_rew_start;
-        if(iter_n > 200){
-            //guard_start = guard_paths;
-            //guard_rew_start = guard_rewards;
+        if(iter_n > 0){
+            guard_start = guard_paths;
+            guard_rew_start = guard_rewards;
         }
         parallel_response_fn(
                     guard_start,

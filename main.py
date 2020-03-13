@@ -44,7 +44,7 @@ def negative_circle(cen,map_info,radius):
 
 def renderSight(screen,map_info,poly,cen,radius,color):
     poly_screen = pygame.Surface((map_info.width, map_info.height), pygame.SRCALPHA)  # the size of your rect
-    poly_screen.set_alpha(32)
+    poly_screen.set_alpha(16)
 
     if poly:
         pygame.draw.polygon(poly_screen,color+(128,),poly)
@@ -217,7 +217,7 @@ def main():
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
-    NUM_ENVS = 40
+    NUM_ENVS = 20
     all_envs = []
     for _ in range(NUM_ENVS):
         start_coord = env_values.guard_locations
