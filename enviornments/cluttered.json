@@ -1,8 +1,8 @@
 {
     "map_fname": "enviornments/cluttered.svg.json",
     "adjacency_list": "enviornments/cluttered.graph.json",
-    "agent_weightmap": "wm_img_dir/cluttered.json_agent.weightmap.json.8",
-    "guard_weightmap": "wm_img_dir/cluttered.json_guard.weightmap.json.8",
+    "agent_weightmap": "{dir}/cluttered.json_{player}.weightmap.json.{number}",
+    "guard_weightmap": "{dir}/cluttered.json_{player}.weightmap.json.{number}",
     "agent_linesight": 100,
     "guard_linesight": 100,
     "reward_collect_radius": 20,

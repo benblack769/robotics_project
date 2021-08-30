@@ -168,6 +168,8 @@ def to_point_paths(visibilty_info,paths):
 def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
+    parser.add_argument('--weightmap-num', required=True, type=int, help='enviornment json file')
+    parser.add_argument('--weightmap-dir', default="wm_img_dir/enviornments", type=str, help='output director of c++ program')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
     parser.add_argument('-D', '--no_display', action='store_true',help="disables drawing to screen")
     parser.add_argument('-N', '--display_num', action='store_true',help="disables drawing to screen")
@@ -175,8 +177,8 @@ def main():
     print(args.no_display)
 
     basename = os.path.basename(args.json_fname).split(".")[0]
-    img_dir = basename+"_img_dir/"
-    video_name = basename+"_vid.mp4"
+    img_dir = basename+f"_img_dir_{args.weightmap_num}/"
+    video_name = basename+f"_vid.{args.weightmap_num}.mp4"
     if os.path.exists(img_dir):
         shutil.rmtree(img_dir)
     if args.produce_video:
@@ -190,8 +192,11 @@ def main():
 
     map_info = Struct(**json.load(open(env_values.map_fname)))
 
-    agent_weightmap = json.load(open(env_values.agent_weightmap))
-    guard_weightmap = json.load(open(env_values.guard_weightmap))
+    agent_weightmap_path = env_values.agent_weightmap.format(dir=args.weightmap_dir,player="agent",number=args.weightmap_num)
+    guard_weightmap_path = env_values.agent_weightmap.format(dir=args.weightmap_dir,player="guard",number=args.weightmap_num)
+
+    agent_weightmap = json.load(open(agent_weightmap_path))
+    guard_weightmap = json.load(open(guard_weightmap_path))
 
     plist = visibilty_info['points']
     start_coord = env_values.agent_location
