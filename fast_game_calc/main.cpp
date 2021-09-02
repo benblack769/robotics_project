@@ -12,7 +12,7 @@
 #include <omp.h>
 #include "json.hpp"
 
-size_t numHWThreads = std::thread::hardware_concurrency();
+size_t numHWThreads = 6;//std::thread::hardware_concurrency();
 
 using json = nlohmann::json;
 struct Point{
@@ -476,6 +476,7 @@ struct ConstantGameInfo{
     EdgeList reward_points;
     size_t guard_start;
     size_t thief_start;
+    bool no_prior;
 };
 using response_fn_ty = void (const PathCollection &,
                          const PathRewards &,
@@ -499,12 +500,16 @@ void best_guard_response(const PathCollection & old_guard_paths,
                      PathRewards & new_guard_rewards){
 
      //initialize guard paths with current best mixture for faster convergence
-    PathCollection guard_paths = old_guard_paths;
-    PathRewards guard_rewards = old_guard_rewards;
-    if(guard_paths.size() > NUM_PATHS){
-        PathSubset best_old_guards = random_subset(gen,old_guard_paths.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
-        keep_indexes(guard_paths,best_old_guards);
-        keep_indexes(guard_rewards,best_old_guards);
+    PathCollection guard_paths;
+    PathRewards guard_rewards;
+    if(!gi.no_prior){
+        guard_paths = old_guard_paths;
+        guard_rewards = old_guard_rewards;
+        if(guard_paths.size() > NUM_PATHS){
+            PathSubset best_old_guards = random_subset(gen,old_guard_paths.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
+            keep_indexes(guard_paths,best_old_guards);
+            keep_indexes(guard_rewards,best_old_guards);
+        }
     }
 
     PathReward dummy_thief_rew;
@@ -517,7 +522,7 @@ void best_guard_response(const PathCollection & old_guard_paths,
         generate_paths(guard_paths,gen,PATH_LENGTH,gi.move_graph,gi.guard_start);
         guard_rewards.resize(NUM_PATHS);
 
-        for(size_t g = old_guard_paths.size(); g < NUM_PATHS; g++){
+        for(size_t g = 0; g < NUM_PATHS; g++){
             for(size_t t = 0; t < theif_paths.size(); t++){
                 ValPair eval = evaluate_rewards(guard_paths[g],theif_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
                 add(guard_rewards[g],dummy_thief_rew,eval);
@@ -573,13 +578,17 @@ void best_thief_response(const PathCollection & old_thief_paths,
                      PathRewards & new_thief_rewards){
 
     //initialize guard paths with current best mixture for faster convergence
-    PathCollection thief_paths = old_thief_paths;
-    PathRewards thief_rewards = old_thief_rewards;
-    if(thief_paths.size() > NUM_PATHS){
-        PathSubset best_old_thiefs = random_subset(gen,old_thief_rewards.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
-        //PathSubset best_old_thiefs = find_best(old_thief_rewards,NUM_PATHS);
-        keep_indexes(thief_paths,best_old_thiefs);
-        keep_indexes(thief_rewards,best_old_thiefs);
+    PathCollection thief_paths;
+    PathRewards thief_rewards;
+    if(!gi.no_prior){
+        thief_paths = old_thief_paths;
+        thief_rewards = old_thief_rewards;
+        if(thief_paths.size() > NUM_PATHS){
+            PathSubset best_old_thiefs = random_subset(gen,old_thief_rewards.size(),NUM_PATHS);//find_best(guard_rewards,NUM_PATHS);
+            //PathSubset best_old_thiefs = find_best(old_thief_rewards,NUM_PATHS);
+            keep_indexes(thief_paths,best_old_thiefs);
+            keep_indexes(thief_rewards,best_old_thiefs);
+        }
     }
 
     PathReward dummy_guard_rew;
@@ -591,7 +600,7 @@ void best_thief_response(const PathCollection & old_thief_paths,
         add_theif_rewards(theif_point_rewards,thief_paths,gi.reward_points,gi.dense_rew_graph);
         thief_rewards.resize(NUM_PATHS);
 
-        for(size_t t = old_thief_paths.size(); t < NUM_PATHS; t++){
+        for(size_t t = 0; t < NUM_PATHS; t++){
             for(size_t g = 0; g < guard_paths.size(); g++){
                 ValPair eval = evaluate_rewards(guard_paths[g],thief_paths[t],theif_point_rewards[t],gi.dense_vis_graph);
                 add(dummy_guard_rew,thief_rewards[t],eval);
@@ -718,7 +727,7 @@ void compete_paths(ConstantGameInfo & gi,
     const size_t PATH_LENGTH = 400;
     //const size_t NUM_PATHS = 450;
     const size_t NUM_START_PATHS = 1;
-    const size_t NUM_ITERS = 10000000;
+    const size_t NUM_ITERS = 20000;
     const size_t ADD_PATHS = 1;
     PathCollection guard_paths(NUM_START_PATHS,Path{});
     PathCollection theif_paths(NUM_START_PATHS,Path{});
@@ -862,10 +871,11 @@ void compete_paths(ConstantGameInfo & gi,
 
 #define arr_to_point(arr) Point{arr[0].get<int>(),arr[1].get<int>()}
 int main(int argc, const char ** argv){
-    assert(argc == 3 && "needs 2 arguments, the filename of the enviornment and of the full visiblity graph");
+    assert(argc == 4 && "needs 3 arguments, the filename of the enviornment and of the full visiblity graph, and whether or not to use prior during path generation");
 
     std::string env_fname = argv[1];
     std::string full_vis_fname = argv[2];
+    bool no_prior = atoi(argv[3]);
 
     //parses first file
     auto env_json = json::parse(read_file(env_fname));
@@ -922,6 +932,7 @@ int main(int argc, const char ** argv){
         .reward_points=reward_vals,
         .guard_start=guard_idx,
         .thief_start=agent_idx,
+        .no_prior=no_prior,
     };
     compete_paths(
         game_info,
