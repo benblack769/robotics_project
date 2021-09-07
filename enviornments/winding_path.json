@@ -1,8 +1,8 @@
 {
     "map_fname": "enviornments/winding_path.svg.json",
     "adjacency_list": "enviornments/winding_path.graph.json",
-    "agent_weightmap": "{dir}/winding_path_guard.json_{player}.weightmap.json.{number}",
-    "guard_weightmap": "{dir}/winding_path_guard.json_{player}.weightmap.json.{number}",
+    "agent_weightmap": "{dir}/winding_path.json_{player}.weightmap.json.{number}",
+    "guard_weightmap": "{dir}/winding_path.json_{player}.weightmap.json.{number}",
     "agent_linesight": 100,
     "guard_linesight": 100,
     "reward_collect_radius": 20,
