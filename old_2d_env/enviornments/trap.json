@@ -1,5 +1,5 @@
 {
-    "img_path":"enviornments/trap.png",
+    "img_path":"environments/trap.png",
     "agent_linesight": 15,
     "guard_linesight": 10,
     "reward_collect_radius": 2,

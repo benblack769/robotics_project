@@ -169,7 +169,7 @@ def main():
     parser = argparse.ArgumentParser(description='run ai enviornmnent')
     parser.add_argument('json_fname', type=str, help='enviornment json file')
     parser.add_argument('--weightmap-num', required=True, type=int, help='enviornment json file')
-    parser.add_argument('--weightmap-dir', default="wm_img_dir/enviornments", type=str, help='output director of c++ program')
+    parser.add_argument('--weightmap-dir', default="wm_img_dir/environments", type=str, help='output director of c++ program')
     parser.add_argument('-V', '--produce_video', action='store_true',help="produces video of screen")
     parser.add_argument('-D', '--no_display', action='store_true',help="disables drawing to screen")
     parser.add_argument('-N', '--display_num', action='store_true',help="disables drawing to screen")
@@ -222,7 +222,7 @@ def main():
 
     libvis = LibVisibility(map_info.blocker_polygons,map_info.width,map_info.height)
 
-    NUM_ENVS = 20
+    NUM_ENVS = 50
     all_envs = []
     for _ in range(NUM_ENVS):
         start_coord = env_values.guard_locations

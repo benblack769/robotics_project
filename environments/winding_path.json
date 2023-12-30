@@ -1,6 +1,6 @@
 {
-    "map_fname": "enviornments/winding_path.svg.json",
-    "adjacency_list": "enviornments/winding_path.graph.json",
+    "map_fname": "environments/winding_path.svg.json",
+    "adjacency_list": "environments/winding_path.graph.json",
     "agent_weightmap": "{dir}/winding_path.json_{player}.weightmap.json.{number}",
     "guard_weightmap": "{dir}/winding_path.json_{player}.weightmap.json.{number}",
     "agent_linesight": 100,

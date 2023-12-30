@@ -138,7 +138,7 @@ class GTSP:
 
 if __name__=="__main__":
     tsp_solver = GTSP()
-    visibilty_info = json.load(open("enviornments/house.graph.json"))
+    visibilty_info = json.load(open("environments/house.graph.json"))
     #res_graph = adj_graph_to_distance_matrix(visibilty_info["adj_list"],visibilty_info['counts'])
     #np.save("house.npy",res_graph)
     #print(res_graph)

@@ -1,5 +1,5 @@
 {
-    "img_path":"enviornments/simple_env.png",
+    "img_path":"environments/simple_env.png",
     "agent_linesight": 15,
     "guard_linesight": 10,
     "reward_collect_radius": 3,

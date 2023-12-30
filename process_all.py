@@ -4,7 +4,7 @@ import random
 import os
 import shutil
 
-srcfolder = "wm_img_dir/enviornments/"
+srcfolder = "wm_img_dir/environments/"
 destfolder = "wm_img_dir/"
 # def remove_if(path):
 #     if os.path.exists(path):
@@ -23,13 +23,13 @@ def process(path):
         # remove_if(dest_agent)
         # shutil.copy(srcfolder+name+"_guard.weightmap.json.{}".format(num),dest_guard)
         # shutil.copy(srcfolder+name+"_agent.weightmap.json.{}".format(num),dest_agent)
-        args = ["python","main.py","-D","-V","enviornments/"+real_name+".json","--weightmap-num",str(num)]
-        # subprocess.check_call(args)
+        args = ["python","main.py","-D","-V","environments/"+real_name+".json","--weightmap-num",str(num)]
+        subprocess.check_call(args)
         vid_name = real_name+f"_vid.{num}.mp4"
         new_name = "new_videos_img_dir/"+real_name+"_vid_{}.mp4".format(num)
         move_args = ["mv", vid_name, new_name]
-        print(f"{' '.join(args)} && {' '.join(move_args)}")
-        # os.rename(vid_name, new_name)
+        # print(f"{' '.join(args)} && {' '.join(move_args)}")
+        os.rename(vid_name, new_name)
 
 os.makedirs("new_videos_img_dir", exist_ok=True)
 src_dir = list(os.listdir(srcfolder))

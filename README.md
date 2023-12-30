@@ -17,13 +17,13 @@ python get_visibility_graph.py environments/many_guards.json
 # Compile c++ code
 (cd fast_game_calc; bash build.sh)
 # create directory to put data
-mkdir -p wm_img_dir/enviornments
+mkdir -p wm_img_dir/environments
 # Run path learning algorithm
-./fast_game_calc/game_calc enviornments/many_guards.json enviornments/many_guards.fullgraph.json 0
+./fast_game_calc/game_calc environments/many_guards.json environments/many_guards.fullgraph.json 0
 # or if you want to run without prior for unbiased approach, try:
-# ./fast_game_calc/game_calc enviornments/many_guards.json enviornments/many_guards.fullgraph.json 1
+# ./fast_game_calc/game_calc environments/many_guards.json environments/many_guards.fullgraph.json 1
 # generate plot for report
-cp wm_img_dir/enviornments/many_guards.json_report.csv .
+cp wm_img_dir/environments/many_guards.json_report.csv .
 python plot_weights.py many_guards.json_report.csv
 # generate videos of results at checkpoints
 python process_all.py

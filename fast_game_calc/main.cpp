@@ -692,10 +692,10 @@ double total_reward(PathCollection & guard_paths,
                  ConstantGameInfo & gi,
                  response_fn_ty fn){
 
-    const size_t NUM_RESPONSE_ITERS = 2000;
-    const size_t NUM_RESPONSE_PATHS = 400;
+    const size_t NUM_RESPONSE_ITERS = 500;
+    const size_t NUM_RESPONSE_PATHS = 100;
     const size_t NUM_RETS = 10;
-    const size_t NUM_PAR_RESP = std::max(size_t(12),numHWThreads);
+    const size_t NUM_PAR_RESP = std::max(size_t(4),numHWThreads);
     PathCollection responses;
     PathRewards response_rews;
     parallel_response_fn(
