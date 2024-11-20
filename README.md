@@ -1,3 +1,11 @@
+## Guard thief experimental environment and algorithms
+
+Course project to simulate guard-thief strategic interactions. Writeup on interesting learning dynamics here [https://benblack769.github.io/posts/blog/guard-thief/](https://benblack769.github.io/posts/blog/guard-thief/).
+
+Simulation of many different scenarios overlapped on top of each other
+
+![Guard/thief gif](./example_videos/many_guards_vid_12.gif)
+
 ### Install:
 
 ```
